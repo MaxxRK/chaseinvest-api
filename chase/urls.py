@@ -13,6 +13,18 @@ def landing_page():
 def account_info():
     return 'https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list'
 
+def account_holdings(account_id):
+    return f'https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai={account_id}'
+
+def all_account_holdings():
+    return 'https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai=group-cwm-investment-'
+
+def order_endpoint(account_id):
+    return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym='
+
+def quote_endpoint(ticker):
+    return f'https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes?securitySymbolCode={ticker}&securityValidateIndicator=true'
+
 def get_headers():
     
     headers = {
