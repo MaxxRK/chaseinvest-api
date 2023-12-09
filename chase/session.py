@@ -2,15 +2,12 @@ import os
 import traceback
 from time import sleep
 
-from selenium.common.exceptions import (
-    ElementClickInterceptedException,
-    ElementNotInteractableException,
-    NoSuchElementException,
-    NoSuchWindowException,
-    StaleElementReferenceException,
-    TimeoutException,
-    WebDriverException,
-)
+from selenium.common.exceptions import (ElementClickInterceptedException,
+                                        ElementNotInteractableException,
+                                        NoSuchElementException,
+                                        NoSuchWindowException,
+                                        StaleElementReferenceException,
+                                        TimeoutException, WebDriverException)
 from selenium.webdriver.chrome.service import Service as ChromiumService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -64,12 +61,12 @@ class ChaseSession:
         """Logs into Chase."""
         try:
             self.driver.get(url=login_page())
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.ID, 'signin-button')))
+            WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.ID, 'signin-button')))
             self.driver.find_element(By.ID, 'userId-text-input-field').send_keys(username)
             self.driver.find_element(By.ID, 'password-text-input-field').send_keys(password)
             self.driver.find_element(By.ID, 'signin-button').click()
             try:
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located
+                WebDriverWait(self.driver, 60).until(EC.presence_of_element_located
                     ((By.CSS_SELECTOR, "#header-simplerAuth-dropdownoptions-styledselect"))
                     )
                 contact_btn = self.driver.find_element(By.CSS_SELECTOR, "#header-simplerAuth-dropdownoptions-styledselect")
@@ -82,7 +79,7 @@ class ChaseSession:
                             item.click()
                             self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
               
-                WebDriverWait(self.driver, 10).until(EC.url_matches(auth_code_page()))
+                WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
                 code = input("Please enter the code sent to your phone: ")
                 self.driver.find_element(By.ID, 'otpcode_input-input-field').send_keys(code)
                 self.driver.find_element(By.ID, 'password_input-input-field').send_keys(password)

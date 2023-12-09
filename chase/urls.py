@@ -16,10 +16,13 @@ def account_info():
 def account_holdings(account_id):
     return f'https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai={account_id}'
 
+def holdings_json():
+    return 'https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v1/positions'
+
 def all_account_holdings():
     return 'https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai=group-cwm-investment-'
 
-def order_endpoint(account_id):
+def order_page(account_id):
     return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym='
 
 def quote_endpoint(ticker):
