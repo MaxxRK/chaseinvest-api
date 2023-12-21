@@ -2,9 +2,11 @@ import time
 from enum import Enum
 
 from bs4 import BeautifulSoup
-from selenium.common.exceptions import (ElementNotInteractableException,
-                                        NoSuchElementException,
-                                        TimeoutException)
+from selenium.common.exceptions import (
+    ElementNotInteractableException,
+    NoSuchElementException,
+    TimeoutException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -47,6 +49,7 @@ class OrderType(str, Enum):
     SELL = "SELL"
     SELL_ALL = "SELL_ALL"
 
+
 class TypeCode(str, Enum):
     """
     This is an :class:'~enum.Enum'
@@ -55,6 +58,7 @@ class TypeCode(str, Enum):
 
     CASH = "CASH"
     MARGIN = "MARGIN"
+
 
 class Order:
     """
@@ -68,10 +72,10 @@ class Order:
         self.accept_warning = accept_warning
         self.order_number: str = ""
         self.wait_time: int = 30
-        
+
     def set_wait_time(self, wait_time: int):
         self.wait_time = wait_time
-    
+
     def place_order(
         self,
         account_id,
@@ -104,107 +108,182 @@ class Order:
             Order:order_confirmation: Dictionary containing the order confirmation data.
         """
 
-        order_messages = {'ORDER INVALID': '', 'WARNING': '', 'ORDER PREVIEW': '', 'AFTER HOURS WARNING': '', 'ORDER CONFIRMATION': ''}
-        
+        order_messages = {
+            "ORDER INVALID": "",
+            "WARNING": "",
+            "ORDER PREVIEW": "",
+            "AFTER HOURS WARNING": "",
+            "ORDER CONFIRMATION": "",
+        }
+
         self.session.driver.get(urls.order_page(account_id))
-        WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
-        quote_box = self.session.driver.find_element(By.CSS_SELECTOR, "#equitySymbolLookup-block-autocomplete-validate-input-field")
+        WebDriverWait(self.session.driver, self.wait_time).until(
+            EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']"))
+        )
+        quote_box = self.session.driver.find_element(
+            By.CSS_SELECTOR,
+            "#equitySymbolLookup-block-autocomplete-validate-input-field",
+        )
         quote_box.clear()
         quote_box.send_keys(symbol)
         quote_box.send_keys(Keys.ENTER)
-        WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
-        WebDriverWait(self.session.driver, self.wait_time).until(EC.invisibility_of_element((By.ID, "default-spinner_2")))
+        WebDriverWait(self.session.driver, self.wait_time).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE"))
+        )
+        WebDriverWait(self.session.driver, self.wait_time).until(
+            EC.invisibility_of_element((By.ID, "default-spinner_2"))
+        )
         if order_type == "BUY":
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.element_to_be_clickable((By.XPATH, "//label[text()='Buy']"))).click()
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.element_to_be_clickable((By.XPATH, "//label[text()='Buy']"))
+            ).click()
         elif order_type == "SELL":
             self.session.driver.find_element(By.XPATH, "//label[text()='Sell']").click()
         elif order_type == "SELL_ALL":
-            self.session.driver.find_element(By.XPATH, "//label[text()='Sell All']").click()
-        
-        
+            self.session.driver.find_element(
+                By.XPATH, "//label[text()='Sell All']"
+            ).click()
+
         if price_type == "LIMIT":
-            self.session.driver.find_element(By.XPATH, "//label[text()='Limit']").click()
+            self.session.driver.find_element(
+                By.XPATH, "//label[text()='Limit']"
+            ).click()
         elif price_type == "MARKET":
-            self.session.driver.find_element(By.XPATH, "//label[text()='Market']").click()
+            self.session.driver.find_element(
+                By.XPATH, "//label[text()='Market']"
+            ).click()
         elif price_type == "STOP":
             self.session.driver.find_element(By.XPATH, "//label[text()='Stop']").click()
         elif price_type == "STOP_LIMIT":
-            self.session.driver.find_element(By.XPATH, "//label[text()='Stop Limit']").click()
-        
+            self.session.driver.find_element(
+                By.XPATH, "//label[text()='Stop Limit']"
+            ).click()
+
         if price_type in ["LIMIT", "STOP", "STOP_LIMIT"]:
-            WebDriverWait(self.session.driver,self.wait_time).until(EC.presence_of_element_located((By.NAME, "tradeLimitPrice"))).send_keys(limit_price)
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.presence_of_element_located((By.NAME, "tradeLimitPrice"))
+            ).send_keys(limit_price)
         if price_type in ["STOP", "STOP_LIMIT"]:
-            WebDriverWait(self.session.driver,self.wait_time).until(EC.presence_of_element_located((By.NAME, "tradeStopPrice"))).send_keys(stop_price)
-        
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.presence_of_element_located((By.NAME, "tradeStopPrice"))
+            ).send_keys(stop_price)
+
         quantity_box = self.session.driver.find_element(By.NAME, "tradeQuantity")
         quantity_box.clear()
         quantity_box.send_keys(quantity)
-        
+
         self.session.driver.find_element(By.XPATH, "//label[text()='Day']").click()
 
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.element_to_be_clickable((By.CSS_SELECTOR , "#previewOrder"))).click()
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "#previewOrder"))
+            ).click()
         except NoSuchElementException:
             raise Exception("No preview button found. Cannot continue.")
         except ElementNotInteractableException:
             raise Exception("Preview button not interactable. Cannot continue.")
-        
+
         try:
-            warning = WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#entry-trade-wrapper > div > div:nth-child(1) > div > div"))).text
+            warning = (
+                WebDriverWait(self.session.driver, self.wait_time)
+                .until(
+                    EC.presence_of_element_located(
+                        (
+                            By.CSS_SELECTOR,
+                            "#entry-trade-wrapper > div > div:nth-child(1) > div > div",
+                        )
+                    )
+                )
+                .text
+            )
             order_messages["ORDER INVALID"] = warning
-            return(order_messages)
+            return order_messages
         except (NoSuchElementException, TimeoutException):
             order_messages["ORDER INVALID"] = "No invalid order message found."
 
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.warning_page(account_id)))
-            warning = self.session.driver.find_element(By.CSS_SELECTOR, ".singleWarning").text
-            order_messages["WARNING"] =  warning
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.url_to_be(urls.warning_page(account_id))
+            )
+            warning = self.session.driver.find_element(
+                By.CSS_SELECTOR, ".singleWarning"
+            ).text
+            order_messages["WARNING"] = warning
             if self.accept_warning:
                 try:
-                    WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#acceptWarnings"))).click()
+                    WebDriverWait(self.session.driver, self.wait_time).until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, "#acceptWarnings")
+                        )
+                    ).click()
                 except (NoSuchElementException, TimeoutException):
                     raise Exception("No accept button found. Could not dismiss prompt.")
             else:
-                return(order_messages)
+                return order_messages
         except TimeoutException:
             order_messages["WARNING"] = "No warning page found."
-        
+
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.order_preview_page(account_id)))
-            order_preview = self.session.driver.find_element(By.CLASS_NAME, "trade-wrapper").text
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.url_to_be(urls.order_preview_page(account_id))
+            )
+            order_preview = self.session.driver.find_element(
+                By.CLASS_NAME, "trade-wrapper"
+            ).text
             order_messages["ORDER PREVIEW"] = order_preview
             if not dry_run:
                 try:
-                    self.session.driver.find_element(By.CSS_SELECTOR, "#submitOrder").click()
+                    self.session.driver.find_element(
+                        By.CSS_SELECTOR, "#submitOrder"
+                    ).click()
                 except NoSuchElementException:
                     raise Exception("No place order button found cannot continue.")
             else:
-                return(order_messages)
+                return order_messages
         except TimeoutException:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
-        
+
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.after_hours_warning(account_id)))
-            warning = self.session.driver.find_element(By.CSS_SELECTOR, "#afterHoursModal > div.markets-message > div").text
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.url_to_be(urls.after_hours_warning(account_id))
+            )
+            warning = self.session.driver.find_element(
+                By.CSS_SELECTOR, "#afterHoursModal > div.markets-message > div"
+            ).text
             order_messages["AFTER HOURS WARNING"] = warning
             if after_hours:
                 try:
-                    self.session.driver.find_element(By.CSS_SELECTOR, "#confirmAfterHoursOrder").click()
+                    self.session.driver.find_element(
+                        By.CSS_SELECTOR, "#confirmAfterHoursOrder"
+                    ).click()
                 except NoSuchElementException:
                     raise Exception("No yes button found. Could not dismiss prompt.")
             else:
-                return(order_messages)
+                return order_messages
         except TimeoutException:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
-        
+
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.order_confirmation()))
-            order_confirmation = self.session.driver.find_element(By.ID, "confirmationHeader").text
-            order_confirmation = order_confirmation + " " + self.session.driver.find_element(By.ID, "confirmationAlert").text
-            order_confirmation = order_confirmation + " " + self.session.driver.find_element(By.CLASS_NAME, "trade-wrapper").text
+            WebDriverWait(self.session.driver, self.wait_time).until(
+                EC.url_to_be(urls.order_confirmation())
+            )
+            order_confirmation = self.session.driver.find_element(
+                By.ID, "confirmationHeader"
+            ).text
+            order_confirmation = (
+                order_confirmation
+                + " "
+                + self.session.driver.find_element(By.ID, "confirmationAlert").text
+            )
+            order_confirmation = (
+                order_confirmation
+                + " "
+                + self.session.driver.find_element(By.CLASS_NAME, "trade-wrapper").text
+            )
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
-            return(order_messages)
+            return order_messages
         except TimeoutException:
-            order_messages["ORDER CONFIRMATION"] = "No order confirmation page found. Order Failed."
+            order_messages[
+                "ORDER CONFIRMATION"
+            ] = "No order confirmation page found. Order Failed."
