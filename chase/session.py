@@ -17,12 +17,12 @@ from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
-from chase.urls import auth_code_page, landing_page, login_page
+from .urls import auth_code_page, login_page
 
 
 class ChaseSession:
     def __init__(self, persistant_session, docker=False):
-        self.persistant_session = persistant_session
+        self.persistent_session = persistant_session
         self.profile_path = ''
         self.docker = docker
         self.driver = self.get_driver()
@@ -34,9 +34,9 @@ class ChaseSession:
             options = webdriver.ChromeOptions()
             options.add_argument("--disable-infobars")
             options.add_argument("--disable-notifications")
-            if self.persistant_session:
+            if self.persistent_session:
                 root = os.path.abspath(os.path.dirname(__file__))
-                profile_path = os.path.join(root, 'Profile/Chase')
+                profile_path = os.path.join(root, 'Profile', 'Chase')
                 options.add_argument('user-data-dir=%s' % profile_path)
             options.add_argument("--disable-gpu")
             options.add_experimental_option("useAutomationExtension", False)

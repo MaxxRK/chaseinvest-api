@@ -3,13 +3,8 @@ import gzip
 import json
 from enum import Enum
 
-from selenium.common import exceptions
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-
-from chase.session import ChaseSession
-from chase.urls import account_info, get_headers, landing_page
+from .session import ChaseSession
+from .urls import account_info, landing_page
 
 
 class AllAccount:

@@ -1,6 +1,7 @@
 #custom
 hometest.py
 Profile/
+requests/
 *.txt
 
 # Byte-compiled / optimized / DLL files

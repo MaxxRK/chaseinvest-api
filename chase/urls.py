@@ -1,9 +1,6 @@
 def login_page():
     return 'https://secure05c.chase.com/web/auth/#/logon/logon/chaseOnline'
 
-def auth_page():
-    return 
-
 def auth_code_page():
     return 'https://secure05c.chase.com/web/auth/#/logon/recognizeUser/provideAuthenticationCode'
 
@@ -19,14 +16,26 @@ def account_holdings(account_id):
 def holdings_json():
     return 'https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v1/positions'
 
-def all_account_holdings():
-    return 'https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai=group-cwm-investment-'
-
 def order_page(account_id):
     return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym='
 
 def quote_endpoint(ticker):
     return f'https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes?securitySymbolCode={ticker}&securityValidateIndicator=true'
+
+def order_preview_page(account_id):
+    return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/preview;ai={account_id}"
+
+def order_analytics():
+    return "https://secure.chase.com/events/analytics/public/v1/events/raw/"
+
+def warning_page(account_id):
+    return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/warnings;ai={account_id}'
+
+def after_hours_warning(account_id):
+    return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/afterHours;ai={account_id}'
+
+def order_confirmation():
+    return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/confirmation'
 
 def get_headers():
     
