@@ -2,7 +2,7 @@
 hometest.py
 Profile/
 requests/
-*.txt
+account.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
