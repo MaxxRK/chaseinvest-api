@@ -2,4 +2,3 @@ selenium==4.15.2
 selenium-wire==5.1.0
 beautifulsoup4 == 4.12.2
 webdriver-manager==4.0.1
-```
