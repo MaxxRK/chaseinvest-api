@@ -4,11 +4,14 @@ def login_page():
 def auth_code_page():
     return 'https://secure05c.chase.com/web/auth/#/logon/recognizeUser/provideAuthenticationCode'
 
+def home_page():
+    return 'https://secure.chase.com/web/auth/dashboard#/dashboard/overview'
+
 def landing_page():
     return 'https://secure09ea.chase.com/web/auth/dashboard#/dashboard/overview'
 
 def account_info():
-    return 'https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list'
+    return ['https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list', 'https://secure09ea.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list']
 
 def account_holdings(account_id):
     return f'https://secure.chase.com/web/auth/dashboard#/dashboard/oi-portfolio/positions/render;ai={account_id}'

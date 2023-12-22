@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from time import sleep
 
-from selenium.common import exceptions
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -83,22 +83,26 @@ class SymbolHoldings:
         
     def get_holdings(self):
         self.session.driver.get(account_holdings(self.account_id))
-        WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//*[@id='positions-tabs']")))
-        sleep(5)
-        for request in self.session.driver.requests:
-            if request.response:
-                if request.url == holdings_json():
-                    body = request.response.body
-                    body = gzip.decompress(body).decode('utf-8')
-                    self.raw_json = json.loads(body)
-        self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-        self.asset_allocation_tool_eligible_indicator = bool(self.raw_json['assetAllocationToolEligibleIndicator'])
-        self.cash_sweep_position_summary = self.raw_json['cashSweepPositionSummary']
-        self.custom_position_allowed_indicator = bool(self.raw_json['customPositionAllowedIndicator'])
-        self.error_responses = self.raw_json['errorResponses']
-        self.performance_allowed_indicator = bool(self.raw_json['performanceAllowedIndicator'])
-        self.positions = self.raw_json['positions']
-        self.positions_summary = self.raw_json['positionsSummary']
+        try:
+            WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//*[@id='positions-tabs']")))
+            sleep(5)
+            for request in self.session.driver.requests:
+                if request.response:
+                    if request.url == holdings_json():
+                        body = request.response.body
+                        body = gzip.decompress(body).decode('utf-8')
+                        self.raw_json = json.loads(body)
+            self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            self.asset_allocation_tool_eligible_indicator = bool(self.raw_json['assetAllocationToolEligibleIndicator'])
+            self.cash_sweep_position_summary = self.raw_json['cashSweepPositionSummary']
+            self.custom_position_allowed_indicator = bool(self.raw_json['customPositionAllowedIndicator'])
+            self.error_responses = self.raw_json['errorResponses']
+            self.performance_allowed_indicator = bool(self.raw_json['performanceAllowedIndicator'])
+            self.positions = self.raw_json['positions']
+            self.positions_summary = self.raw_json['positionsSummary']
+            return True
+        except (NoSuchElementException, TimeoutException):
+            return False
         
         
 class PositionData:

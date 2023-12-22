@@ -19,7 +19,7 @@ class AllAccount:
         self.session.driver.get(landing_page())
         for request in self.session.driver.requests:
             if request.response:
-                if request.url == account_info():
+                if request.url in account_info():
                     body = request.response.body
                     body = gzip.decompress(body).decode('utf-8')
                     account_json = json.loads(body)

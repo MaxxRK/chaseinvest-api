@@ -17,7 +17,7 @@ from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
-from .urls import auth_code_page, login_page
+from .urls import auth_code_page, home_page, login_page
 
 
 class ChaseSession:
@@ -66,7 +66,7 @@ class ChaseSession:
             self.driver.find_element(By.ID, 'password-text-input-field').send_keys(password)
             self.driver.find_element(By.ID, 'signin-button').click()
             try:
-                WebDriverWait(self.driver, 60).until(EC.presence_of_element_located
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located
                     ((By.CSS_SELECTOR, "#header-simplerAuth-dropdownoptions-styledselect"))
                     )
                 contact_btn = self.driver.find_element(By.CSS_SELECTOR, "#header-simplerAuth-dropdownoptions-styledselect")
@@ -86,9 +86,15 @@ class ChaseSession:
                 self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
             except TimeoutException:
                 pass
+            try:
+                WebDriverWait(self.driver, 60).until(EC.url_to_be(home_page()))
+                return True
+            except TimeoutException:
+                return False
         except Exception as e:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
+            return False
     
     
     def grab_code():
