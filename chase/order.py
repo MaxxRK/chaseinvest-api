@@ -1,7 +1,8 @@
+import gzip
+import json
 import time
 from enum import Enum
 
-from bs4 import BeautifulSoup
 from selenium.common.exceptions import (ElementNotInteractableException,
                                         NoSuchElementException,
                                         TimeoutException)
@@ -138,10 +139,19 @@ class Order:
             self.session.driver.find_element(By.XPATH, "//label[text()='Limit']").click()
         elif price_type == "MARKET":
             self.session.driver.find_element(By.XPATH, "//label[text()='Market']").click()
+            if duration not in ["DAY", "ON_THE_CLOSE"]:
+                order_messages["ORDER INVALID"] = "Market orders must be DAY or ON THE CLOSE."
+                return(order_messages)
         elif price_type == "STOP":
             self.session.driver.find_element(By.XPATH, "//label[text()='Stop']").click()
+            if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
+                order_messages["ORDER INVALID"] = "Stop orders must be DAY or GOOD TILL CANCELLED."
+                return(order_messages)
         elif price_type == "STOP_LIMIT":
             self.session.driver.find_element(By.XPATH, "//label[text()='Stop Limit']").click()
+            if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
+                order_messages["ORDER INVALID"] = "Stop orders must be DAY or GOOD TILL CANCELLED."
+                return(order_messages)
 
         if price_type in ["LIMIT", "STOP", "STOP_LIMIT"]:
             WebDriverWait(self.session.driver,self.wait_time).until(EC.presence_of_element_located((By.NAME, "tradeLimitPrice"))).send_keys(limit_price)
@@ -151,7 +161,18 @@ class Order:
         quantity_box = self.session.driver.find_element(By.NAME, "tradeQuantity")
         quantity_box.clear()
         quantity_box.send_keys(quantity)
-        self.session.driver.find_element(By.XPATH, "//label[text()='Day']").click()
+
+        if duration == "DAY":
+            self.session.driver.find_element(By.XPATH, "//label[text()='Day']").click()
+        elif duration == "GOOD_TILL_CANCELLED":
+            self.session.driver.find_element(By.XPATH, "//label[text()='Good 'til canceled']").click()
+        elif duration == "ON_THE_OPEN":
+            self.session.driver.find_element(By.XPATH, "//label[text()='On open']").click()
+        elif duration == "ON_THE_CLOSE":
+            self.session.driver.find_element(By.XPATH, "//label[text()='On close']").click()
+        elif duration == "IMMEDIATE_OR_CANCEL":
+            self.session.driver.find_element(By.CSS_SELECTOR, "#tradeExecutionOptions-iconwrap").click()
+            self.session.driver.find_element(By.XPATH, "//label[text()='Immediate or Cancel']").click()
 
         try:
             WebDriverWait(self.session.driver, self.wait_time).until(EC.element_to_be_clickable((By.CSS_SELECTOR , "#previewOrder"))).click()
@@ -220,3 +241,22 @@ class Order:
         except TimeoutException:
             order_messages["ORDER CONFIRMATION"] = "No order confirmation page found. Order Failed."
             return(order_messages)
+
+    def get_order_statuses(self, account_id):
+        try:
+            self.session.driver.get(urls.order_status(account_id))
+            WebDriverWait(self.session.driver, 60).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "tr.investmentGridRow")))
+            for request in self.session.driver.requests:
+                if request.response:
+                    if request.url in urls.order_info():
+                        body = request.response.body
+                        try:
+                            body = body.decode('utf-8')
+                            body = json.loads(body)
+                        except UnicodeDecodeError:
+                            order_json = gzip.decompress(body).decode('utf-8')
+                            order_json = json.loads(order_json)
+                            return order_json
+            return body
+        except (TimeoutException, NoSuchElementException, UnboundLocalError):
+            return None

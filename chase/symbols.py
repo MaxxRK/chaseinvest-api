@@ -9,14 +9,49 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from .account import AccountDetails, AllAccount
 from .session import ChaseSession
 from .urls import account_holdings, holdings_json, order_page, quote_endpoint
 
 
 class SymbolQuote:
+    """
+    A class to manage the quote of a specific symbol associated with a ChaseSession.
+
+    This class provides methods to retrieve and manage information about the quote of a specific symbol associated with a given session.
+
+    Attributes:
+        account_id (str): The ID of the account.
+        session (ChaseSession): The session associated with the account.
+        symbol (str): The symbol for which the quote is retrieved.
+        ask_price (float): The ask price of the symbol.
+        ask_exchange_code (str): The exchange code of the ask price.
+        ask_quantity (int): The quantity of the ask price.
+        bid_price (float): The bid price of the symbol.
+        bid_exchange_code (str): The exchange code of the bid price.
+        bid_quantity (int): The quantity of the bid price.
+        change_amount (float): The change amount of the symbol.
+        last_trade_price (float): The last trade price of the symbol.
+        last_trade_quantity (int): The last trade quantity of the symbol.
+        last_exchange_code (str): The exchange code of the last trade.
+        change_percentage (float): The change percentage of the symbol.
+        as_of_time (datetime): The timestamp of the quote information.
+        security_description (str): The description of the security.
+        security_symbol (str): The symbol of the security.
+        raw_json (dict): The raw JSON response containing the quote information.
+
+    Methods:
+        get_symbol_quote(): Retrieves and sets the quote information of the symbol.
+    """
     
     def __init__(self, account_id, session: ChaseSession, symbol: str):
+        """
+        Initializes a SymbolQuote object with a given account ID, ChaseSession, and symbol.
+
+        Args:
+            account_id (str): The ID of the account.
+            session (ChaseSession): The session associated with the account.
+            symbol (str): The symbol for which the quote is retrieved.
+        """
         self.account_id = account_id
         self.session = session
         self.symbol = symbol
@@ -38,6 +73,14 @@ class SymbolQuote:
         self.get_symbol_quote()
     
     def get_symbol_quote(self):
+        """
+        Retrieves and sets the quote information of the symbol.
+
+        This method navigates to the symbol quote page, waits for the quote information to load, and then retrieves the quote information from the page.
+
+        Returns:
+            None
+        """
         self.session.driver.get(order_page(self.account_id))
         WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
         quote_box = self.session.driver.find_element(By.CSS_SELECTOR, "#equitySymbolLookup-block-autocomplete-validate-input-field")
@@ -67,8 +110,36 @@ class SymbolQuote:
 
 
 class SymbolHoldings:
+    """
+    A class to manage the holdings of a specific account associated with a ChaseSession.
+
+    This class provides methods to retrieve and manage information about the holdings of a specific account associated with a given session.
+
+    Attributes:
+        account_id (str): The ID of the account.
+        session (ChaseSession): The session associated with the account.
+        as_of_time (datetime): The timestamp of the holdings information.
+        asset_allocation_tool_eligible_indicator (bool): Whether the account is eligible for the asset allocation tool.
+        cash_sweep_position_summary (dict): The summary of the cash sweep position.
+        custom_position_allowed_indicator (bool): Whether custom positions are allowed.
+        error_responses (list): Any error responses returned when retrieving the holdings information.
+        performance_allowed_indicator (bool): Whether performance tracking is allowed.
+        positions (list): The positions held in the account.
+        positions_summary (dict): The summary of the positions.
+        raw_json (dict): The raw JSON response containing the holdings information.
+
+    Methods:
+        get_holdings(): Retrieves and sets the holdings information of the account.
+    """
     
     def __init__(self, account_id, session: ChaseSession):
+        """
+        Initializes a SymbolHoldings object with a given account ID and ChaseSession.
+
+        Args:
+            account_id (str): The ID of the account.
+            session (ChaseSession): The session associated with the account.
+        """
         self.account_id = account_id
         self.session = session
         self.as_of_time: datetime = None
@@ -82,6 +153,14 @@ class SymbolHoldings:
         self.raw_json: dict = {}
         
     def get_holdings(self):
+        """
+        Retrieves and sets the holdings information of the account.
+
+        This method navigates to the account holdings page, waits for the holdings information to load, and then retrieves the holdings information from the page.
+
+        Returns:
+            bool: True if the holdings information was successfully retrieved, False otherwise.
+        """
         self.session.driver.get(account_holdings(self.account_id))
         try:
             WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//*[@id='positions-tabs']")))
@@ -103,11 +182,4 @@ class SymbolHoldings:
             return True
         except (NoSuchElementException, TimeoutException):
             return False
-        
-        
-class PositionData:
-    
-    def __init__(self, positions: SymbolHoldings):
-        self.positions = positions.positions
-        pass
         
