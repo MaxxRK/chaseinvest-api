@@ -28,6 +28,7 @@ class AllAccount:
         get_all_account_info(): Retrieves information about all accounts associated with the session.
         get_account_connectors(): Retrieves connectors for all accounts associated with the session.
     """
+
     def __init__(self, session: ChaseSession):
         """
         Initializes an AllAccount object with a given ChaseSession.
@@ -40,7 +41,6 @@ class AllAccount:
         self.session = session
         self.all_account_info = self.get_all_account_info()
         self.account_connectors = self.get_account_connectors()
-        
 
     def get_all_account_info(self):
         """
@@ -53,19 +53,28 @@ class AllAccount:
         """
         try:
             self.session.driver.get(landing_page())
-            WebDriverWait(self.session.driver, 60).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#INV_ACCOUNTS")))
+            WebDriverWait(self.session.driver, 60).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#INV_ACCOUNTS"))
+            )
             for request in self.session.driver.requests:
                 if request.response:
                     if request.url in account_info():
                         body = request.response.body
-                        body = gzip.decompress(body).decode('utf-8')
+                        body = gzip.decompress(body).decode("utf-8")
                         account_json = json.loads(body)
-                        for info in account_json['cache']:
-                            if info['url']== '/svc/rr/accounts/secure/v1/account/detail/inv/list':
-                                invest_json = info['response']['chaseInvestments']
+                        for info in account_json["cache"]:
+                            if (
+                                info["url"]
+                                == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
+                            ):
+                                invest_json = info["response"]["chaseInvestments"]
                         if request.response.status_code == 200:
-                            self.total_value = invest_json['investmentSummary']['accountValue']
-                            self.total_value_change = invest_json['investmentSummary']['accountValueChange']
+                            self.total_value = invest_json["investmentSummary"][
+                                "accountValue"
+                            ]
+                            self.total_value_change = invest_json["investmentSummary"][
+                                "accountValueChange"
+                            ]
                             return invest_json
                         else:
                             return None
@@ -85,11 +94,11 @@ class AllAccount:
         if self.all_account_info == None:
             return None
         account_dict = {}
-        for item in self.all_account_info['accounts']:
-            account_dict[item['accountId']] = [item['mask']]
+        for item in self.all_account_info["accounts"]:
+            account_dict[item["accountId"]] = [item["mask"]]
         return account_dict
 
-           
+
 class AccountDetails:
     """
     A class to manage the details of a specific account associated with a ChaseSession.
@@ -113,6 +122,7 @@ class AccountDetails:
     Methods:
         get_account_details(): Retrieves and sets the details of the account.
     """
+
     def __init__(self, account_id, all_account: AllAccount):
         """
         Initializes an AccountDetails object with a given account ID and AllAccount object.
@@ -134,7 +144,7 @@ class AccountDetails:
         self.prior_year_ira: bool = None
         self.show_xfer: bool = None
         self.get_account_details()
-        
+
     def get_account_details(self):
         """
         Retrieves and sets the details of the account.
@@ -144,19 +154,15 @@ class AccountDetails:
         Returns:
             None
         """
-        for item in self.all_account_info['accounts']:
-            if item['accountId'] == self.account_id:
-                self.mask = item['mask']
-                self.nickname = item['nickname']
-                self.detail_type = item['detailType']
-                self.account_value = float(item['accountValue'])
-                self.account_value_change = float(item['accountValueChange'])
-                self.eda = bool(item['eda'])
-                self.ira = bool(item['ira'])
-                self.view_balance = bool(item['viewBalance'])
-                self.prior_year_ira = bool(item['priorYearIra'])
-                self.show_xfer = bool(item['showXfer'])
-                   
-
-        
-        
+        for item in self.all_account_info["accounts"]:
+            if item["accountId"] == self.account_id:
+                self.mask = item["mask"]
+                self.nickname = item["nickname"]
+                self.detail_type = item["detailType"]
+                self.account_value = float(item["accountValue"])
+                self.account_value_change = float(item["accountValueChange"])
+                self.eda = bool(item["eda"])
+                self.ira = bool(item["ira"])
+                self.view_balance = bool(item["viewBalance"])
+                self.prior_year_ira = bool(item["priorYearIra"])
+                self.show_xfer = bool(item["showXfer"])

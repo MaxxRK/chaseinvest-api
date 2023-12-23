@@ -42,7 +42,7 @@ class SymbolQuote:
     Methods:
         get_symbol_quote(): Retrieves and sets the quote information of the symbol.
     """
-    
+
     def __init__(self, account_id, session: ChaseSession, symbol: str):
         """
         Initializes a SymbolQuote object with a given account ID, ChaseSession, and symbol.
@@ -71,7 +71,7 @@ class SymbolQuote:
         self.security_symbol: str = ""
         self.raw_json: dict = {}
         self.get_symbol_quote()
-    
+
     def get_symbol_quote(self):
         """
         Retrieves and sets the quote information of the symbol.
@@ -82,31 +82,40 @@ class SymbolQuote:
             None
         """
         self.session.driver.get(order_page(self.account_id))
-        WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
-        quote_box = self.session.driver.find_element(By.CSS_SELECTOR, "#equitySymbolLookup-block-autocomplete-validate-input-field")
+        WebDriverWait(self.session.driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']"))
+        )
+        quote_box = self.session.driver.find_element(
+            By.CSS_SELECTOR,
+            "#equitySymbolLookup-block-autocomplete-validate-input-field",
+        )
         quote_box.send_keys(self.symbol)
         quote_box.send_keys(Keys.ENTER)
-        WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
+        WebDriverWait(self.session.driver, 60).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE"))
+        )
         for request in self.session.driver.requests:
             if request.response:
                 if request.url == quote_endpoint(self.symbol):
                     body = request.response.body
-                    body = gzip.decompress(body).decode('utf-8')
+                    body = gzip.decompress(body).decode("utf-8")
                     self.raw_json = json.loads(body)
-        self.ask_price = float(self.raw_json['askPriceAmount'])
-        self.ask_exchange_code = self.raw_json['askExchangeCode']
-        self.ask_quantity = int(self.raw_json['askQuantity'])
-        self.bid_price = float(self.raw_json['bidPriceAmount'])
-        self.bid_exchange_code = self.raw_json['bidExchangeCode']
-        self.bid_quantity = int(self.raw_json['bidQuantity'])
-        self.change_amount = float(self.raw_json['changeAmount'])
-        self.last_trade_price = float(self.raw_json['lastTradePriceAmount'])
-        self.last_trade_quantity = int(self.raw_json['lastTradeQuantity'])
-        self.last_exchange_code = self.raw_json['lastTradeExchangeCode']
-        self.change_percentage = float(self.raw_json['changePercent'])
-        self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-        self.security_description = self.raw_json['securityDescriptionText']
-        self.security_symbol = self.raw_json['securitySymbolCode']
+        self.ask_price = float(self.raw_json["askPriceAmount"])
+        self.ask_exchange_code = self.raw_json["askExchangeCode"]
+        self.ask_quantity = int(self.raw_json["askQuantity"])
+        self.bid_price = float(self.raw_json["bidPriceAmount"])
+        self.bid_exchange_code = self.raw_json["bidExchangeCode"]
+        self.bid_quantity = int(self.raw_json["bidQuantity"])
+        self.change_amount = float(self.raw_json["changeAmount"])
+        self.last_trade_price = float(self.raw_json["lastTradePriceAmount"])
+        self.last_trade_quantity = int(self.raw_json["lastTradeQuantity"])
+        self.last_exchange_code = self.raw_json["lastTradeExchangeCode"]
+        self.change_percentage = float(self.raw_json["changePercent"])
+        self.as_of_time = datetime.strptime(
+            self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        self.security_description = self.raw_json["securityDescriptionText"]
+        self.security_symbol = self.raw_json["securitySymbolCode"]
 
 
 class SymbolHoldings:
@@ -131,7 +140,7 @@ class SymbolHoldings:
     Methods:
         get_holdings(): Retrieves and sets the holdings information of the account.
     """
-    
+
     def __init__(self, account_id, session: ChaseSession):
         """
         Initializes a SymbolHoldings object with a given account ID and ChaseSession.
@@ -151,7 +160,7 @@ class SymbolHoldings:
         self.positions: list = []
         self.positions_summary: dict = {}
         self.raw_json: dict = {}
-        
+
     def get_holdings(self):
         """
         Retrieves and sets the holdings information of the account.
@@ -163,23 +172,32 @@ class SymbolHoldings:
         """
         self.session.driver.get(account_holdings(self.account_id))
         try:
-            WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//*[@id='positions-tabs']")))
+            WebDriverWait(self.session.driver, 60).until(
+                EC.presence_of_element_located((By.XPATH, "//*[@id='positions-tabs']"))
+            )
             sleep(5)
             for request in self.session.driver.requests:
                 if request.response:
                     if request.url == holdings_json():
                         body = request.response.body
-                        body = gzip.decompress(body).decode('utf-8')
+                        body = gzip.decompress(body).decode("utf-8")
                         self.raw_json = json.loads(body)
-            self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-            self.asset_allocation_tool_eligible_indicator = bool(self.raw_json['assetAllocationToolEligibleIndicator'])
-            self.cash_sweep_position_summary = self.raw_json['cashSweepPositionSummary']
-            self.custom_position_allowed_indicator = bool(self.raw_json['customPositionAllowedIndicator'])
-            self.error_responses = self.raw_json['errorResponses']
-            self.performance_allowed_indicator = bool(self.raw_json['performanceAllowedIndicator'])
-            self.positions = self.raw_json['positions']
-            self.positions_summary = self.raw_json['positionsSummary']
+            self.as_of_time = datetime.strptime(
+                self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            self.asset_allocation_tool_eligible_indicator = bool(
+                self.raw_json["assetAllocationToolEligibleIndicator"]
+            )
+            self.cash_sweep_position_summary = self.raw_json["cashSweepPositionSummary"]
+            self.custom_position_allowed_indicator = bool(
+                self.raw_json["customPositionAllowedIndicator"]
+            )
+            self.error_responses = self.raw_json["errorResponses"]
+            self.performance_allowed_indicator = bool(
+                self.raw_json["performanceAllowedIndicator"]
+            )
+            self.positions = self.raw_json["positions"]
+            self.positions_summary = self.raw_json["positionsSummary"]
             return True
         except (NoSuchElementException, TimeoutException):
             return False
-        
