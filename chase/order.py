@@ -70,10 +70,6 @@ class Order:
         # self.session.driver.request_interceptor = self.post_interceptor
         self.accept_warning = accept_warning
         self.order_number: str = ""
-        self.wait_time: int = 30
-
-    def set_wait_time(self, wait_time: int):
-        self.wait_time = wait_time
 
     def place_order(
         self,
@@ -113,7 +109,7 @@ class Order:
             self.session.driver.get(urls.order_page(account_id))
             self.session.driver.refresh()
             try:
-                WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
+                WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
                 break
             except (TimeoutException, NoSuchElementException):
                 order_messages['ORDER INVALID'] = f"Order page did not load correctly cannot continue. Tried {i + 1} times."
@@ -126,10 +122,10 @@ class Order:
         quote_box.clear()
         quote_box.send_keys(symbol)
         quote_box.send_keys(Keys.ENTER)
-        WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
-        WebDriverWait(self.session.driver, self.wait_time).until(EC.invisibility_of_element((By.ID, "default-spinner_2")))
+        WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
+        WebDriverWait(self.session.driver, 60).until(EC.invisibility_of_element((By.ID, "default-spinner_2")))
         if order_type == "BUY":
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.element_to_be_clickable((By.XPATH, "//label[text()='Buy']"))).click()
+            WebDriverWait(self.session.driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//label[text()='Buy']"))).click()
         elif order_type == "SELL":
             self.session.driver.find_element(By.XPATH, "//label[text()='Sell']").click()
         elif order_type == "SELL_ALL":
@@ -154,9 +150,9 @@ class Order:
                 return(order_messages)
 
         if price_type in ["LIMIT", "STOP", "STOP_LIMIT"]:
-            WebDriverWait(self.session.driver,self.wait_time).until(EC.presence_of_element_located((By.NAME, "tradeLimitPrice"))).send_keys(limit_price)
+            WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.NAME, "tradeLimitPrice"))).send_keys(limit_price)
         if price_type in ["STOP", "STOP_LIMIT"]:
-            WebDriverWait(self.session.driver,self.wait_time).until(EC.presence_of_element_located((By.NAME, "tradeStopPrice"))).send_keys(stop_price)
+            WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.NAME, "tradeStopPrice"))).send_keys(stop_price)
 
         quantity_box = self.session.driver.find_element(By.NAME, "tradeQuantity")
         quantity_box.clear()
@@ -175,26 +171,26 @@ class Order:
             self.session.driver.find_element(By.XPATH, "//label[text()='Immediate or Cancel']").click()
 
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.element_to_be_clickable((By.CSS_SELECTOR , "#previewOrder"))).click()
+            WebDriverWait(self.session.driver, 30).until(EC.element_to_be_clickable((By.CSS_SELECTOR , "#previewOrder"))).click()
         except NoSuchElementException:
             raise Exception("No preview button found. Cannot continue.")
         except ElementNotInteractableException:
             raise Exception("Preview button not interactable. Cannot continue.")
 
         try:
-            warning = WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#entry-trade-wrapper > div > div:nth-child(1) > div > div"))).text
+            warning = WebDriverWait(self.session.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#entry-trade-wrapper > div > div:nth-child(1) > div > div"))).text
             order_messages["ORDER INVALID"] = warning
             return(order_messages)
         except (NoSuchElementException, TimeoutException):
             order_messages["ORDER INVALID"] = "No invalid order message found."
 
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.warning_page(account_id)))
+            WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.warning_page(account_id)))
             warning = self.session.driver.find_element(By.CSS_SELECTOR, ".singleWarning").text
             order_messages["WARNING"] =  warning
             if self.accept_warning:
                 try:
-                    WebDriverWait(self.session.driver, self.wait_time).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#acceptWarnings"))).click()
+                    WebDriverWait(self.session.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#acceptWarnings"))).click()
                 except (NoSuchElementException, TimeoutException):
                     raise Exception("No accept button found. Could not dismiss prompt.")
             else:
@@ -203,7 +199,7 @@ class Order:
             order_messages["WARNING"] = "No warning page found."
 
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.order_preview_page(account_id)))
+            WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.order_preview_page(account_id)))
             order_preview = self.session.driver.find_element(By.CLASS_NAME, "trade-wrapper").text
             order_messages["ORDER PREVIEW"] = order_preview
             if not dry_run:
@@ -217,7 +213,7 @@ class Order:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
         
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.after_hours_warning(account_id)))
+            WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.after_hours_warning(account_id)))
             warning = self.session.driver.find_element(By.CSS_SELECTOR, "#afterHoursModal > div.markets-message > div").text
             order_messages["AFTER HOURS WARNING"] = warning
             if after_hours:
@@ -231,7 +227,7 @@ class Order:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
         
         try:
-            WebDriverWait(self.session.driver, self.wait_time).until(EC.url_to_be(urls.order_confirmation()))
+            WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.order_confirmation()))
             order_confirmation = self.session.driver.find_element(By.ID, "confirmationHeader").text
             order_confirmation = order_confirmation + " " + self.session.driver.find_element(By.ID, "confirmationAlert").text
             order_confirmation = order_confirmation + " " + self.session.driver.find_element(By.CLASS_NAME, "trade-wrapper").text

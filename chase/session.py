@@ -2,7 +2,7 @@ import os
 import traceback
 from time import sleep
 
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.service import Service as ChromiumService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,7 +11,7 @@ from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
-from .urls import auth_code_page, login_page
+from .urls import auth_code_page, login_page, landing_page
 
 
 class ChaseSession:
@@ -136,9 +136,17 @@ class ChaseSession:
                 self.driver.find_element(By.ID, 'otpcode_input-input-field').send_keys(code)
                 self.driver.find_element(By.ID, 'password_input-input-field').send_keys(password)
                 self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
+                sleep(5)
             except TimeoutException:
                 pass
-            return True
+            for i in range(3):
+                try:
+                    self.driver.find_element(By.ID, 'signin-button')
+                    self.driver.refresh()
+                    sleep(5)
+                except NoSuchElementException:
+                    return True   
+            raise Exception("Failed to login to Chase")
         except Exception as e:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
