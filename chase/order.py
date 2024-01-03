@@ -105,25 +105,28 @@ class Order:
 
         order_messages = {'ORDER INVALID': '', 'WARNING': '', 'ORDER PREVIEW': '', 'AFTER HOURS WARNING': '', 'ORDER CONFIRMATION': ''}
 
-        for i in range(0, 10):
+        for i in range(0, 4):
             self.session.driver.get(urls.order_page(account_id))
             self.session.driver.refresh()
             try:
-                WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
+                WebDriverWait(self.session.driver, 20).until(EC.presence_of_element_located((By.XPATH, "//label[text()='Buy']")))
+
+                quote_box = self.session.driver.find_element(By.CSS_SELECTOR, "#equitySymbolLookup-block-autocomplete-validate-input-field")
+                quote_box.clear()
+                quote_box.send_keys(symbol)
+                quote_box.send_keys(Keys.ENTER)
+
+                WebDriverWait(self.session.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
+                WebDriverWait(self.session.driver, 10).until(EC.invisibility_of_element((By.ID, "default-spinner_2")))
+                order_messages['ORDER INVALID'] = "Order page loaded correctly."
                 break
             except (TimeoutException, NoSuchElementException):
                 order_messages['ORDER INVALID'] = f"Order page did not load correctly cannot continue. Tried {i + 1} times."
                 print(order_messages["ORDER INVALID"])
-
-        if order_messages['ORDER INVALID'] != '':
+        
+        if order_messages['ORDER INVALID'] != "Order page loaded correctly.":
             return order_messages
-
-        quote_box = self.session.driver.find_element(By.CSS_SELECTOR, "#equitySymbolLookup-block-autocomplete-validate-input-field")
-        quote_box.clear()
-        quote_box.send_keys(symbol)
-        quote_box.send_keys(Keys.ENTER)
-        WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
-        WebDriverWait(self.session.driver, 60).until(EC.invisibility_of_element((By.ID, "default-spinner_2")))
+        
         if order_type == "BUY":
             WebDriverWait(self.session.driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//label[text()='Buy']"))).click()
         elif order_type == "SELL":
