@@ -3,7 +3,7 @@
 
  This is not an official api! This api's functionality may change at any time.
 
- This api provides a means of buying and selling stocks through Firstrade. It uses the Session class from requests to get authorization cookies. The rest is done with reverse engineered requests to Firstrade's API. 
+ This api provides a means of buying and selling stocks through Chase. It uses selenium-wire to scrape response data and selenium to interact with the website.
 
  ---
 
@@ -136,9 +136,9 @@ This code is also in test.py
  - [x] Get Account Data
  - [x] Place Orders and Receive order confirmation
  - [x] Get Currently Held Positions
+ - [x] Get placed order status
 
 ## TO DO
- - [ ] Check on placed order status.
  - [ ] Cancel placed orders
  - [ ] Options
  - [ ] Give me some Ideas!
