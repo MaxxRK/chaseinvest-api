@@ -54,19 +54,18 @@ class AllAccount:
             self.session.driver.get(landing_page())
             WebDriverWait(self.session.driver, 60).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#INV_ACCOUNTS")))
             for request in self.session.driver.requests:
-                if request.response:
-                    if request.url in account_info():
-                        body = request.response.body
-                        body = gzip.decompress(body).decode('utf-8')
-                        account_json = json.loads(body)
-                        for info in account_json['cache']:
-                            if info['url']== '/svc/rr/accounts/secure/v1/account/detail/inv/list':
-                                invest_json = info['response']['chaseInvestments']
-                        if request.response.status_code == 200:
-                            self.total_value = invest_json['investmentSummary']['accountValue']
-                            self.total_value_change = invest_json['investmentSummary']['accountValueChange']
-                            return invest_json
-                        return None
+                if request.response and request.url == account_info():
+                    body = request.response.body
+                    body = gzip.decompress(body).decode('utf-8')
+                    account_json = json.loads(body)
+                    for info in account_json['cache']:
+                        if info['url']== '/svc/rr/accounts/secure/v1/account/detail/inv/list':
+                            invest_json = info['response']['chaseInvestments']
+                    if request.response.status_code == 200:
+                        self.total_value = invest_json['investmentSummary']['accountValue']
+                        self.total_value_change = invest_json['investmentSummary']['accountValueChange']
+                        return invest_json
+                    return None
         except (TimeoutException, NoSuchElementException):
             print("Timed out waiting for page to load")
             return None

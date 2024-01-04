@@ -257,16 +257,15 @@ class Order:
             self.session.driver.get(urls.order_status(account_id))
             WebDriverWait(self.session.driver, 60).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "tr.investmentGridRow")))
             for request in self.session.driver.requests:
-                if request.response:
-                    if request.url in urls.order_info():
-                        body = request.response.body
-                        try:
-                            body = body.decode('utf-8')
-                            body = json.loads(body)
-                        except UnicodeDecodeError:
-                            order_json = gzip.decompress(body).decode('utf-8')
-                            order_json = json.loads(order_json)
-                            return order_json
+                if request.response and request.url == urls.order_info():
+                    body = request.response.body
+                    try:
+                        body = body.decode('utf-8')
+                        body = json.loads(body)
+                    except UnicodeDecodeError:
+                        order_json = gzip.decompress(body).decode('utf-8')
+                        order_json = json.loads(order_json)
+                        return order_json
             return body
         except (TimeoutException, NoSuchElementException, UnboundLocalError):
             return None

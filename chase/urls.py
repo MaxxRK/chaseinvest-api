@@ -108,7 +108,7 @@ def after_hours_warning(account_id):
     return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/afterHours;ai={account_id}'
 
 def order_confirmation():
-    return f'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/confirmation'
+    return 'https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/confirmation'
 
 def order_status(account_id):
     """

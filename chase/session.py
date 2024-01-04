@@ -89,7 +89,7 @@ class ChaseSession:
                     options=options,
                 )
         except Exception as e:
-            print(f"Error getting Driver: \n")
+            print("Error getting Driver: \n")
             traceback.print_exc(e)
         if not self.headless:  
             driver.maximize_window()
@@ -126,10 +126,9 @@ class ChaseSession:
                 options_ls = self.driver.find_elements(By.CSS_SELECTOR, 'li[role="presentation"]')
                 for item in options_ls:
                     print(item.text)
-                    if 'CALL_ME' not in item.text:
-                        if str(last_four) in  item.text:
-                            item.click()
-                            self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
+                    if 'CALL_ME' not in item.text and str(last_four) == item.text:
+                        item.click()
+                        self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
 
                 WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
                 code = input("Please enter the code sent to your phone: ")

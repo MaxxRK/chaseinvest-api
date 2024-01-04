@@ -88,11 +88,10 @@ class SymbolQuote:
         quote_box.send_keys(Keys.ENTER)
         WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".NOTE")))
         for request in self.session.driver.requests:
-            if request.response:
-                if request.url == quote_endpoint(self.symbol):
-                    body = request.response.body
-                    body = gzip.decompress(body).decode('utf-8')
-                    self.raw_json = json.loads(body)
+            if request.response and request.url == quote_endpoint(self.symbol):
+                body = request.response.body
+                body = gzip.decompress(body).decode('utf-8')
+                self.raw_json = json.loads(body)
         self.ask_price = float(self.raw_json['askPriceAmount'])
         self.ask_exchange_code = self.raw_json['askExchangeCode']
         self.ask_quantity = int(self.raw_json['askQuantity'])
@@ -166,11 +165,10 @@ class SymbolHoldings:
             WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.XPATH, "//*[@id='positions-tabs']")))
             sleep(5)
             for request in self.session.driver.requests:
-                if request.response:
-                    if request.url == holdings_json():
-                        body = request.response.body
-                        body = gzip.decompress(body).decode('utf-8')
-                        self.raw_json = json.loads(body)
+                if request.response and request.url == holdings_json():
+                    body = request.response.body
+                    body = gzip.decompress(body).decode('utf-8')
+                    self.raw_json = json.loads(body)
             self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
             self.asset_allocation_tool_eligible_indicator = bool(self.raw_json['assetAllocationToolEligibleIndicator'])
             self.cash_sweep_position_summary = self.raw_json['cashSweepPositionSummary']
