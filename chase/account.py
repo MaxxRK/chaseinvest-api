@@ -40,7 +40,6 @@ class AllAccount:
         self.all_account_info = self.get_all_account_info()
         self.account_connectors = self.get_account_connectors()
 
-
     def get_all_account_info(self):
         """
         Retrieves and returns information about all accounts associated with the session.

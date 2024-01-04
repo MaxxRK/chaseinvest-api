@@ -47,7 +47,6 @@ class ChaseSession:
         self.profile_path: str = ''
         self.driver = self.get_driver()
 
-
     def get_driver(self):
         """
         Gets the correct WebDriver for the operating system and initializes it with the necessary options.
@@ -91,7 +90,7 @@ class ChaseSession:
         except Exception as e:
             print("Error getting Driver: \n")
             traceback.print_exc(e)
-        if not self.headless:  
+        if not self.headless:
             driver.maximize_window()
         else:
             driver.set_window_size(1920, 1080)
@@ -144,13 +143,12 @@ class ChaseSession:
                     self.driver.refresh()
                     sleep(5)
                 except NoSuchElementException:
-                    return True   
+                    return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
             return False
-
 
     def __getattr__(self, name):
         """

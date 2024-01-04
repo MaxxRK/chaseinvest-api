@@ -32,7 +32,7 @@ print("ACCOUNT DETAILS")
 print("====================================")
 for account in account_ids:
     account = account.AccountDetails(account, all_accounts)
-    print( 
+    print(
           account.nickname,
           account.mask,
           account.account_value
@@ -50,7 +50,7 @@ for account in account_ids:
     if success:
         for i, symbol in enumerate(symbols.positions):
             if symbols.positions[i]['instrumentLongName'] == 'Cash and Sweep Funds':
-                symbol =  symbols.positions[i]['instrumentLongName']
+                symbol = symbols.positions[i]['instrumentLongName']
                 value = symbols.positions[i]['marketValue']['baseValueAmount']
                 print(f"Symbol: {symbol} Value: {value}")
             elif symbols.positions[i]['assetCategoryName'] == 'EQUITY':

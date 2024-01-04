@@ -19,7 +19,7 @@ def account_holdings(account_id):
     """
     Generates the URL for the account holdings page for a specific account.
 
-    This function takes an account ID as an argument and returns the URL for the 
+    This function takes an account ID as an argument and returns the URL for the
     account holdings page for that account on the Chase website.
 
     Args:
@@ -39,7 +39,7 @@ def order_page(account_id):
     """
     Generates the URL for the order page for a specific account.
 
-    This function takes an account ID as an argument and returns the URL for the 
+    This function takes an account ID as an argument and returns the URL for the
     order page for that account on the Chase website.
 
     Args:
@@ -55,7 +55,7 @@ def quote_endpoint(ticker):
     """
     Generates the URL for the quote endpoint for a specific ticker.
 
-    This function takes a ticker symbol as an argument and returns the URL for the 
+    This function takes a ticker symbol as an argument and returns the URL for the
     quote endpoint for that ticker on the Chase website.
 
     Args:
@@ -71,7 +71,7 @@ def order_preview_page(account_id):
     """
     Generates the URL for the order preview page for a specific account.
 
-    This function takes an account ID as an argument and returns the URL for the 
+    This function takes an account ID as an argument and returns the URL for the
     order preview page for that account on the Chase website.
 
     Args:
@@ -91,7 +91,7 @@ def warning_page(account_id):
     """
     Generates the URL for the warning page for a specific account.
 
-    This function takes an account ID as an argument and returns the URL for the 
+    This function takes an account ID as an argument and returns the URL for the
     warning page for that account on the Chase website.
 
     Args:
@@ -107,7 +107,7 @@ def after_hours_warning(account_id):
     """
     Generates the URL for the after hours warning page for a specific account.
 
-    This function takes an account ID as an argument and returns the URL for the 
+    This function takes an account ID as an argument and returns the URL for the
     after hours warning page for that account on the Chase website.
 
     Args:
@@ -127,7 +127,7 @@ def order_status(account_id):
     """
     Generates the URL for the order status page for a specific account.
 
-    This function takes an account ID as an argument and returns the URL for the 
+    This function takes an account ID as an argument and returns the URL for the
     order status page for that account on the Chase website.
 
     Args:
@@ -143,13 +143,13 @@ def order_info():
     return 'https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-trade-orders/v1/summaries'
 
 
-def get_headers():  
+def get_headers():
     headers = {
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Connection": "keep-alive",
-    "Content-Length": "20",
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Connection": "keep-alive",
+        "Content-Length": "20",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
     return headers

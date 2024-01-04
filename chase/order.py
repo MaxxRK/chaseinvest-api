@@ -179,7 +179,7 @@ class Order:
         try:
             WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.warning_page(account_id)))
             warning = self.session.driver.find_element(By.CSS_SELECTOR, ".singleWarning").text
-            order_messages["WARNING"] =  warning
+            order_messages["WARNING"] = warning
             if self.accept_warning:
                 try:
                     WebDriverWait(self.session.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#acceptWarnings"))).click()
