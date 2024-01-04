@@ -39,7 +39,7 @@ class AllAccount:
         self.session = session
         self.all_account_info = self.get_all_account_info()
         self.account_connectors = self.get_account_connectors()
-        
+
 
     def get_all_account_info(self):
         """
@@ -87,7 +87,7 @@ class AllAccount:
             account_dict[item['accountId']] = [item['mask']]
         return account_dict
 
-           
+
 class AccountDetails:
     """
     A class to manage the details of a specific account associated with a ChaseSession.
@@ -132,7 +132,7 @@ class AccountDetails:
         self.prior_year_ira: bool = None
         self.show_xfer: bool = None
         self.get_account_details()
-        
+
     def get_account_details(self):
         """
         Retrieves and sets the details of the account.
@@ -154,4 +154,3 @@ class AccountDetails:
                 self.view_balance = bool(item['viewBalance'])
                 self.prior_year_ira = bool(item['priorYearIra'])
                 self.show_xfer = bool(item['showXfer'])
-   
