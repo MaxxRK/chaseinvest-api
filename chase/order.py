@@ -16,10 +16,7 @@ from .session import ChaseSession
 
 
 class PriceType(str, Enum):
-    """
-    This is an :class: 'enum.Enum' that contains the valid price types for an order.
-    """
-
+    """This is an :class: 'enum.Enum' that contains the valid price types for an order."""
     LIMIT = "LIMIT"
     MARKET = "MARKET"
     STOP = "STOP"
@@ -28,7 +25,6 @@ class PriceType(str, Enum):
 
 class Duration(str, Enum):
     """This is an :class:'~enum.Enum' that contains the valid durations for an order."""
-
     DAY = "DAY"
     GTC = "GOOD_TILL_CANCELLED"
     ON_OPEN = "ON_THE_OPEN"
@@ -41,7 +37,6 @@ class OrderType(str, Enum):
     This is an :class:'~enum.Enum'
     that contains the valid order types for an order.
     """
-
     BUY = "BUY"
     SELL = "SELL"
     SELL_ALL = "SELL_ALL"
@@ -52,7 +47,6 @@ class TypeCode(str, Enum):
     This is an :class:'~enum.Enum'
     that contains the valid order types for an order.
     """
-
     CASH = "CASH"
     MARGIN = "MARGIN"
 
@@ -62,7 +56,6 @@ class Order:
     This class contains information about an order.
     It also contains a method to place an order.
     """
-
     def __init__(self, session: ChaseSession, accept_warning: bool = True):
         self.session = session
         self.accept_warning = accept_warning

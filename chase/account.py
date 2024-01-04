@@ -59,7 +59,7 @@ class AllAccount:
                     body = gzip.decompress(body).decode('utf-8')
                     account_json = json.loads(body)
                     for info in account_json['cache']:
-                        if info['url']== '/svc/rr/accounts/secure/v1/account/detail/inv/list':
+                        if info['url'] == '/svc/rr/accounts/secure/v1/account/detail/inv/list':
                             invest_json = info['response']['chaseInvestments']
                     if request.response.status_code == 200:
                         self.total_value = invest_json['investmentSummary']['accountValue']
