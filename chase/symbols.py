@@ -42,7 +42,7 @@ class SymbolQuote:
     Methods:
         get_symbol_quote(): Retrieves and sets the quote information of the symbol.
     """
-    
+
     def __init__(self, account_id, session: ChaseSession, symbol: str):
         """
         Initializes a SymbolQuote object with a given account ID, ChaseSession, and symbol.
@@ -71,7 +71,7 @@ class SymbolQuote:
         self.security_symbol: str = ""
         self.raw_json: dict = {}
         self.get_symbol_quote()
-    
+
     def get_symbol_quote(self):
         """
         Retrieves and sets the quote information of the symbol.
@@ -131,7 +131,7 @@ class SymbolHoldings:
     Methods:
         get_holdings(): Retrieves and sets the holdings information of the account.
     """
-    
+
     def __init__(self, account_id, session: ChaseSession):
         """
         Initializes a SymbolHoldings object with a given account ID and ChaseSession.
@@ -151,7 +151,7 @@ class SymbolHoldings:
         self.positions: list = []
         self.positions_summary: dict = {}
         self.raw_json: dict = {}
-        
+
     def get_holdings(self):
         """
         Retrieves and sets the holdings information of the account.

@@ -96,7 +96,7 @@ class ChaseSession:
         else:
             driver.set_window_size(1920, 1080)
         return driver
-    
+
     def login(self, username, password, last_four):
         """
         Logs into the website with the provided username and password.
@@ -130,7 +130,7 @@ class ChaseSession:
                         if str(last_four) in  item.text:
                             item.click()
                             self.driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]').click()
-              
+
                 WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
                 code = input("Please enter the code sent to your phone: ")
                 self.driver.find_element(By.ID, 'otpcode_input-input-field').send_keys(code)
@@ -152,7 +152,7 @@ class ChaseSession:
             print(f"Error logging into Chase: {e}")
             return False
 
-    
+
     def __getattr__(self, name):
         """
         Forwards unknown attribute access to session object.
@@ -164,4 +164,3 @@ class ChaseSession:
             The value of the requested attribute from the session object.
         """
         return getattr(self.session, name)
-    
