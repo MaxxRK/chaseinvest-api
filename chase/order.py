@@ -137,17 +137,17 @@ class Order:
             self.session.driver.find_element(By.XPATH, "//label[text()='Market']").click()
             if duration not in ["DAY", "ON_THE_CLOSE"]:
                 order_messages["ORDER INVALID"] = "Market orders must be DAY or ON THE CLOSE."
-                return(order_messages)
+                return order_messages
         elif price_type == "STOP":
             self.session.driver.find_element(By.XPATH, "//label[text()='Stop']").click()
             if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
                 order_messages["ORDER INVALID"] = "Stop orders must be DAY or GOOD TILL CANCELLED."
-                return(order_messages)
+                return order_messages
         elif price_type == "STOP_LIMIT":
             self.session.driver.find_element(By.XPATH, "//label[text()='Stop Limit']").click()
             if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
                 order_messages["ORDER INVALID"] = "Stop orders must be DAY or GOOD TILL CANCELLED."
-                return(order_messages)
+                return order_messages
 
         if price_type in ["LIMIT", "STOP", "STOP_LIMIT"]:
             WebDriverWait(self.session.driver, 60).until(EC.presence_of_element_located((By.NAME, "tradeLimitPrice"))).send_keys(limit_price)
@@ -180,7 +180,7 @@ class Order:
         try:
             warning = WebDriverWait(self.session.driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "#entry-trade-wrapper > div > div:nth-child(1) > div > div"))).text
             order_messages["ORDER INVALID"] = warning
-            return(order_messages)
+            return order_messages
         except (NoSuchElementException, TimeoutException):
             order_messages["ORDER INVALID"] = "No invalid order message found."
 
@@ -194,7 +194,7 @@ class Order:
                 except (NoSuchElementException, TimeoutException):
                     raise Exception("No accept button found. Could not dismiss prompt.")
             else:
-                return(order_messages)
+                return order_messages
         except TimeoutException:
             order_messages["WARNING"] = "No warning page found."
 
@@ -208,7 +208,7 @@ class Order:
                 except NoSuchElementException:
                     raise Exception("No place order button found cannot continue.")
             else:
-                return(order_messages)
+                return order_messages
         except TimeoutException:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
 
@@ -222,7 +222,7 @@ class Order:
                 except NoSuchElementException:
                     raise Exception("No yes button found. Could not dismiss prompt.")
             else:
-                return(order_messages)
+                return order_messages
         except TimeoutException:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
 
@@ -233,10 +233,10 @@ class Order:
             order_confirmation = order_confirmation + " " + self.session.driver.find_element(By.CLASS_NAME, "trade-wrapper").text
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
-            return(order_messages)
+            return order_messages
         except TimeoutException:
             order_messages["ORDER CONFIRMATION"] = "No order confirmation page found. Order Failed."
-            return(order_messages)
+            return order_messages
 
     def get_order_statuses(self, account_id):
         """
