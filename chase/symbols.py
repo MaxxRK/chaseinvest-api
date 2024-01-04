@@ -182,4 +182,3 @@ class SymbolHoldings:
             return True
         except (NoSuchElementException, TimeoutException):
             return False
-        

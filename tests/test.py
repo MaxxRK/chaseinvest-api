@@ -1,7 +1,7 @@
 import sys
 
 from chase import account as acc
-from chase import order as ord
+from chase import order as och
 from chase import session
 from chase import symbols as sym
 
@@ -11,13 +11,13 @@ cs = session.ChaseSession(persistant_session=True, docker=False)
 # Login to Chase.com
 login = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
 
-if login == False:
+if login is False:
     sys.exit('Failed to login to chase.com')
 
 # Make all account object
 all_accounts = acc.AllAccount(cs)
 
-if all_accounts.account_connectors == None:
+if all_accounts.account_connectors is None:
     sys.exit('Failed to get account connectors exiting script...')
 
 # Get Account Identifiers
@@ -69,7 +69,7 @@ for account in account_ids:
 print("====================================")
 
 # Create Order Object
-order = ord.Order(cs)
+order = och.Order(cs)
 
 # Get Order Statuses
 print("====================================")

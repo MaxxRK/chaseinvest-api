@@ -1,6 +1,5 @@
 import gzip
 import json
-from enum import Enum
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
@@ -67,8 +66,7 @@ class AllAccount:
                             self.total_value = invest_json['investmentSummary']['accountValue']
                             self.total_value_change = invest_json['investmentSummary']['accountValueChange']
                             return invest_json
-                        else:
-                            return None
+                        return None
         except (TimeoutException, NoSuchElementException):
             print("Timed out waiting for page to load")
             return None
@@ -82,7 +80,7 @@ class AllAccount:
         Returns:
             dict: A dictionary containing the account connectors, or None if the all_account_info attribute is None.
         """
-        if self.all_account_info == None:
+        if self.all_account_info is None:
             return None
         account_dict = {}
         for item in self.all_account_info['accounts']:
@@ -156,7 +154,4 @@ class AccountDetails:
                 self.view_balance = bool(item['viewBalance'])
                 self.prior_year_ira = bool(item['priorYearIra'])
                 self.show_xfer = bool(item['showXfer'])
-                   
-
-        
-        
+   

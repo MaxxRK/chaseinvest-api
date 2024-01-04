@@ -15,7 +15,7 @@ setuptools.setup(
     url="https://github.com/MaxxRK/chaseinvest-api",
     download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/001.tar.gz",
     keywords=["CHASE", "API"],
-    install_requires=["requests", "beautifulsoup4", "lxml"],
+    install_requires=["selenium", "selenium-wire"],
     packages=["chaseinvest-api"],
     classifiers=[
         "Development Status :: 3 - Alpha",

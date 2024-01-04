@@ -2,7 +2,7 @@ import os
 import traceback
 from time import sleep
 
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.service import Service as ChromiumService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -11,7 +11,7 @@ from seleniumwire import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
-from .urls import auth_code_page, login_page, landing_page
+from .urls import auth_code_page, login_page
 
 
 class ChaseSession:
@@ -31,7 +31,7 @@ class ChaseSession:
         get_driver(): Initializes and returns a WebDriver with the necessary options.
         login(username, password, last_four): Logs into Chase with the provided credentials.
     """
-    
+
     def __init__(self, persistant_session, headless=True, docker=False):
         """
         Initializes a new instance of the ChaseSession class.
@@ -139,7 +139,7 @@ class ChaseSession:
                 sleep(5)
             except TimeoutException:
                 pass
-            for i in range(3):
+            for _ in range(3):
                 try:
                     self.driver.find_element(By.ID, 'signin-button')
                     self.driver.refresh()

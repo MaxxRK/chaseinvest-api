@@ -1,6 +1,5 @@
 import gzip
 import json
-import time
 from enum import Enum
 
 from selenium.common.exceptions import (ElementNotInteractableException,
@@ -66,7 +65,6 @@ class Order:
 
     def __init__(self, session: ChaseSession, accept_warning: bool = True):
         self.session = session
-        # self.session.driver.request_interceptor = self.post_interceptor
         self.accept_warning = accept_warning
         self.order_number: str = ""
 
@@ -122,10 +120,10 @@ class Order:
             except (TimeoutException, NoSuchElementException):
                 order_messages['ORDER INVALID'] = f"Order page did not load correctly cannot continue. Tried {i + 1} times."
                 print(order_messages["ORDER INVALID"])
-        
+
         if order_messages['ORDER INVALID'] != "Order page loaded correctly.":
             return order_messages
-        
+
         if order_type == "BUY":
             WebDriverWait(self.session.driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//label[text()='Buy']"))).click()
         elif order_type == "SELL":
@@ -213,7 +211,7 @@ class Order:
                 return(order_messages)
         except TimeoutException:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
-        
+
         try:
             WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.after_hours_warning(account_id)))
             warning = self.session.driver.find_element(By.CSS_SELECTOR, "#afterHoursModal > div.markets-message > div").text
@@ -227,7 +225,7 @@ class Order:
                 return(order_messages)
         except TimeoutException:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
-        
+
         try:
             WebDriverWait(self.session.driver, 5).until(EC.url_to_be(urls.order_confirmation()))
             order_confirmation = self.session.driver.find_element(By.ID, "confirmationHeader").text

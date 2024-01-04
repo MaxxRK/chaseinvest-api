@@ -56,5 +56,3 @@ def get_headers():
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
     }
     return headers
-
-# 'https://secure09ea.chase.com/web/auth/dashboard#/dashboard/overview', 
