@@ -239,6 +239,20 @@ class Order:
             return(order_messages)
 
     def get_order_statuses(self, account_id):
+        """
+        Retrieves the statuses of all recent orders placed.
+
+        This method navigates to the order status page and scrapes the status of each order.
+        It returns a list of dictionaries, where each dictionary represents an order and contains
+        the order number and status.
+
+        Returns:
+            list[dict]: A list of dictionaries, where each dictionary contains 'order_number' and 'status' keys.
+
+        Raises:
+            TimeoutException: If the order status page fails to load within the specified timeout.
+            NoSuchElementException: If an expected element on the order status page cannot be found.
+        """
         try:
             self.session.driver.get(urls.order_status(account_id))
             WebDriverWait(self.session.driver, 60).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "tr.investmentGridRow")))
