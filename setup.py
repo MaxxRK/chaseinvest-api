@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     license="MIT",
     url="https://github.com/MaxxRK/chaseinvest-api",
-    download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/001.tar.gz",
+    download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/v0.0.1.tar.gz",
     keywords=["CHASE", "API"],
     install_requires=["selenium", "selenium-wire"],
     packages=["chaseinvest-api.chase"],
