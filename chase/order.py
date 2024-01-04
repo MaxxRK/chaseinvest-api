@@ -14,7 +14,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 import chase.urls as urls
 
 from .session import ChaseSession
-from .symbols import SymbolQuote
 
 
 class PriceType(str, Enum):
