@@ -99,7 +99,6 @@ class Order:
         Returns:
             Order:order_confirmation: Dictionary containing the order confirmation data.
         """
-
         order_messages = {'ORDER INVALID': '', 'WARNING': '', 'ORDER PREVIEW': '', 'AFTER HOURS WARNING': '', 'ORDER CONFIRMATION': ''}
 
         for i in range(0, 4):
