@@ -16,7 +16,7 @@ setuptools.setup(
     download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/v0.0.1.tar.gz",
     keywords=["CHASE", "API"],
     install_requires=["selenium", "selenium-wire"],
-    packages=["chase"],
+    packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
