@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="chaseinvest-api",
-    version="0.0.1",
+    version="0.0.2",
     author="MaxxRK",
     author_email="maxxrk@pm.me",
     description="An unofficial API for Chase Invest",
