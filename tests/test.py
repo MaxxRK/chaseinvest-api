@@ -6,7 +6,7 @@ from chase import session
 from chase import symbols as sym
 
 # create Session
-cs = session.ChaseSession(persistant_session=True, docker=False)
+cs = session.ChaseSession(title="Title of your profile here", docker=False)
 
 # Login to Chase.com
 login = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
@@ -31,7 +31,7 @@ print("====================================")
 print("ACCOUNT DETAILS")
 print("====================================")
 for account in account_ids:
-    account = account.AccountDetails(account, all_accounts)
+    account = acc.AccountDetails(account, all_accounts)
     print(account.nickname, account.mask, account.account_value)
 print("====================================")
 
@@ -98,10 +98,10 @@ print("====================================")
 messages = order.place_order(
     account_ids[0],
     1,
-    ord.PriceType.MARKET,
+    och.PriceType.MARKET,
     "INTC",
-    ord.Duration.DAY,
-    ord.OrderType.BUY,
+    och.Duration.DAY,
+    och.OrderType.BUY,
     dry_run=True,
 )
 if messages["ORDER CONFIRMATION"] != "":
