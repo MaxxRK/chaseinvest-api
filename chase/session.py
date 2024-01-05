@@ -143,7 +143,6 @@ class ChaseSession:
                     By.CSS_SELECTOR, 'li[role="presentation"]'
                 )
                 for item in options_ls:
-                    print(item.text)
                     if "CALL_ME" not in item.text and str(last_four) in item.text:
                         item.click()
                         self.driver.find_element(

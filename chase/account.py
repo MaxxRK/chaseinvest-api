@@ -56,7 +56,7 @@ class AllAccount:
                 EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#INV_ACCOUNTS"))
             )
             for request in self.session.driver.requests:
-                if request.response and request.url == account_info():
+                if request.response and request.url in account_info():
                     body = request.response.body
                     body = gzip.decompress(body).decode("utf-8")
                     account_json = json.loads(body)
