@@ -8,11 +8,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from seleniumwire import webdriver
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
 from .urls import auth_code_page, login_page
 
+
+class FileChange(FileSystemEventHandler):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def on_modified(self, event):
+        if not event.is_directory and event.src_path.endswith(self.filename):
+            self.file_modified = True
 
 class ChaseSession:
     """
@@ -32,19 +42,21 @@ class ChaseSession:
         login(username, password, last_four): Logs into Chase with the provided credentials.
     """
 
-    def __init__(self, persistant_session, headless=True, docker=False):
+    def __init__(self, title=None, headless=True, docker=False, external_code=False):
         """
         Initializes a new instance of the ChaseSession class.
 
         Args:
-            persistent_session (bool): Whether the session should be persistent across multiple uses of the WebDriver.
+            title (string): Denotes the name of the profile and if populated will make the session persistent.
             headless (bool, optional): Whether the WebDriver should run in headless mode. Defaults to True.
             docker (bool, optional): Whether the session is running in a Docker container. Defaults to False.
         """
-        self.persistent_session: bool = persistant_session
+        self.title: str = title
         self.headless: bool = headless
         self.docker: bool = docker
         self.profile_path: str = ""
+        self.external_code: bool = external_code
+        self.need_code: bool = False
         self.driver = self.get_driver()
 
     def get_driver(self):
@@ -71,10 +83,10 @@ class ChaseSession:
                 options.add_argument(
                     "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3"
                 )
-            if self.persistent_session:
+            if self.title is not None:
                 root = os.path.abspath(os.path.dirname(__file__))
-                profile_path = os.path.join(root, "Profile", "Chase")
-                options.add_argument("user-data-dir=%s" % profile_path)
+                self.profile_path = os.path.join(root, "Profile", f"Chase_{self.title}")
+                options.add_argument("user-data-dir=%s" % self.profile_path)
             options.add_argument("--disable-gpu")
             options.add_experimental_option("useAutomationExtension", False)
             options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -100,6 +112,36 @@ class ChaseSession:
             driver.set_window_size(1920, 1080)
         return driver
 
+    def get_login_code(self):
+        """
+        Gets the login code from the user. Either from discord or from the terminal.
+        
+        Args:
+            external_code (bool, optional): Whether the code should be retrieved externally. Defaults to False.
+        
+        Returns:
+            code (str): The login code.
+        """
+        if not self.external_code:
+            code = input("Please enter the code sent to your phone: ")
+        else:
+            self.need_code = True
+            event_handler = FileChange(".code")
+            observer = Observer()
+            observer.schedule(event_handler, path='.', recursive=False)
+            observer.start()
+
+            # Wait for the file to be modified
+            while not event_handler.file_modified:
+                sleep(1)
+
+            observer.stop()
+            observer.join()
+
+            with open(".code", "r") as f:
+                code = f.read()
+        return code
+    
     def login(self, username, password, last_four):
         """
         Logs into the website with the provided username and password.
@@ -150,7 +192,7 @@ class ChaseSession:
                         ).click()
 
                 WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
-                code = input("Please enter the code sent to your phone: ")
+                code = self.get_login_code()
                 self.driver.find_element(By.ID, "otpcode_input-input-field").send_keys(
                     code
                 )
