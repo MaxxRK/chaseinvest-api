@@ -132,8 +132,12 @@ class ChaseSession:
             observer.start()
 
             # Wait for the file to be modified
-            while not event_handler.file_modified:
+            for i in range(0, 120):
                 sleep(1)
+                if event_handler.file_modified:
+                    break
+                if i == 119:
+                    raise Exception("Code not received in time cannot login.")
 
             observer.stop()
             observer.join()
