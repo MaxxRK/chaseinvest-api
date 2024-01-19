@@ -25,6 +25,7 @@ class FileChange(FileSystemEventHandler):
         if not event.is_directory and event.src_path.endswith(self.filename):
             self.file_modified = True
 
+
 class ChaseSession:
     """
     A class to manage a session with Chase.
@@ -116,10 +117,10 @@ class ChaseSession:
     def get_login_code(self, queue):
         """
         Gets the login code from the user. Either from discord or from the terminal.
-        
+
         Args:
             external_code (bool, optional): Whether the code should be retrieved externally. Defaults to False.
-        
+
         Returns:
             code (str): The login code.
         """
@@ -130,7 +131,7 @@ class ChaseSession:
             queue.put(self.need_code)
             event_handler = FileChange(".code")
             observer = Observer()
-            observer.schedule(event_handler, path='.', recursive=False)
+            observer.schedule(event_handler, path=".", recursive=False)
             observer.start()
 
             # Wait for the file to be modified
@@ -147,7 +148,7 @@ class ChaseSession:
             with open(".code", "r") as f:
                 code = f.read()
         return code
-    
+
     def login(self, username, password, last_four, queue):
         """
         Logs into the website with the provided username and password.
