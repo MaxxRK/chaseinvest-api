@@ -113,7 +113,7 @@ class ChaseSession:
             driver.set_window_size(1920, 1080)
         return driver
 
-    def get_login_code(self):
+    def get_login_code(self, queue):
         """
         Gets the login code from the user. Either from discord or from the terminal.
         
@@ -127,6 +127,7 @@ class ChaseSession:
             code = input("Please enter the code sent to your phone: ")
         else:
             self.need_code = True
+            queue.put(self.need_code)
             event_handler = FileChange(".code")
             observer = Observer()
             observer.schedule(event_handler, path='.', recursive=False)
@@ -147,7 +148,7 @@ class ChaseSession:
                 code = f.read()
         return code
     
-    def login(self, username, password, last_four):
+    def login(self, username, password, last_four, queue):
         """
         Logs into the website with the provided username and password.
 
@@ -216,11 +217,13 @@ class ChaseSession:
                     self.driver.refresh()
                     sleep(5)
                 except NoSuchElementException:
+                    queue.put(True)
                     return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
+            queue.put(False)
             return False
 
     def __getattr__(self, name):
