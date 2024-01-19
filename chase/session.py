@@ -198,7 +198,7 @@ class ChaseSession:
                         ).click()
 
                 WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
-                code = self.get_login_code()
+                code = self.get_login_code(queue)
                 self.driver.find_element(By.ID, "otpcode_input-input-field").send_keys(
                     code
                 )
