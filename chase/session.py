@@ -19,6 +19,7 @@ from .urls import auth_code_page, login_page
 class FileChange(FileSystemEventHandler):
     def __init__(self, filename):
         self.filename = filename
+        self.file_modified = False
 
     def on_modified(self, event):
         if not event.is_directory and event.src_path.endswith(self.filename):
