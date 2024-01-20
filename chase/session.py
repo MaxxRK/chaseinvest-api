@@ -127,7 +127,7 @@ class ChaseSession:
             code = input("Please enter the code sent to your phone: ")
         else:
             self.need_code = True
-            queue.put(self.need_code)
+            queue.put((self.need_code, 'code'))
             event_handler = FileChange(".code")
             observer = Observer()
             observer.schedule(event_handler, path='.', recursive=False)
@@ -146,6 +146,7 @@ class ChaseSession:
 
             with open(".code", "r") as f:
                 code = f.read()
+            os.remove(".code")
         return code
     
     def login(self, username, password, last_four, queue):
@@ -217,13 +218,13 @@ class ChaseSession:
                     self.driver.refresh()
                     sleep(5)
                 except NoSuchElementException:
-                    queue.put(True)
+                    queue.put((True, 'logged_in'))
                     return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
-            queue.put(False)
+            queue.put((False, 'logged_in'))
             return False
 
     def __getattr__(self, name):
