@@ -32,7 +32,8 @@ class AllAccount:
         """
         Initializes an AllAccount object with a given ChaseSession.
 
-        This method initializes an AllAccount object, sets the session attribute to the given ChaseSession, and retrieves the account information and connectors for all accounts associated with the session.
+        This method initializes an AllAccount object, sets the session attribute to the given ChaseSession,
+        and retrieves the account information and connectors for all accounts associated with the session.
 
         Args:
             session (ChaseSession): The session associated with the accounts.
@@ -45,7 +46,8 @@ class AllAccount:
         """
         Retrieves and returns information about all accounts associated with the session.
 
-        This method navigates to the landing page, waits for the account information to load, and then retrieves the account information from the page.
+        This method navigates to the landing page, waits for the account information to load,
+        and then retrieves the account information from the page.
 
         Returns:
             dict: A dictionary containing the account information, or None if the information could not be retrieved.
