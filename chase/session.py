@@ -17,11 +17,29 @@ from .urls import auth_code_page, login_page
 
 
 class FileChange(FileSystemEventHandler):
+    """
+    A class that inherits from FileSystemEventHandler to handle file change events.
+
+    This class overrides the `on_modified` method from FileSystemEventHandler to set a flag when a specific file is modified.
+
+    Attributes:
+        filename (str): The name of the file to watch for modifications.
+        file_modified (bool): A flag that indicates whether the file has been modified.
+    """
     def __init__(self, filename):
         self.filename = filename
         self.file_modified = False
 
     def on_modified(self, event):
+        """
+        Called when a file or directory is modified.
+
+        If the modified file is not a directory and its name ends with the filename this instance is watching, 
+        the `file_modified` flag is set to True.
+
+        Args:
+            event (FileSystemEvent): The event object representing the file system event.
+        """
         if not event.is_directory and event.src_path.endswith(self.filename):
             self.file_modified = True
 
