@@ -25,6 +25,7 @@ class FileChange(FileSystemEventHandler):
         if not event.is_directory and event.src_path.endswith(self.filename):
             self.file_modified = True
 
+
 class ChaseSession:
     """
     A class to manage a session with Chase.
@@ -116,10 +117,10 @@ class ChaseSession:
     def get_login_code(self, queue):
         """
         Gets the login code from the user. Either from discord or from the terminal.
-        
+
         Args:
             external_code (bool, optional): Whether the code should be retrieved externally. Defaults to False.
-        
+
         Returns:
             code (str): The login code.
         """
@@ -127,10 +128,10 @@ class ChaseSession:
             code = input("Please enter the code sent to your phone: ")
         else:
             self.need_code = True
-            queue.put((self.need_code, 'code'))
+            queue.put((self.need_code, "code"))
             event_handler = FileChange(".code")
             observer = Observer()
-            observer.schedule(event_handler, path='.', recursive=False)
+            observer.schedule(event_handler, path=".", recursive=False)
             observer.start()
 
             # Wait for the file to be modified
@@ -148,7 +149,7 @@ class ChaseSession:
                 code = f.read()
             os.remove(".code")
         return code
-    
+
     def login(self, username, password, last_four, queue):
         """
         Logs into the website with the provided username and password.
@@ -218,13 +219,13 @@ class ChaseSession:
                     self.driver.refresh()
                     sleep(5)
                 except NoSuchElementException:
-                    queue.put((True, 'logged_in'))
+                    queue.put((True, "logged_in"))
                     return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
-            queue.put((False, 'logged_in'))
+            queue.put((False, "logged_in"))
             return False
 
     def __getattr__(self, name):
