@@ -26,6 +26,7 @@ class FileChange(FileSystemEventHandler):
         filename (str): The name of the file to watch for modifications.
         file_modified (bool): A flag that indicates whether the file has been modified.
     """
+
     def __init__(self, filename):
         self.filename = filename
         self.file_modified = False
@@ -34,7 +35,7 @@ class FileChange(FileSystemEventHandler):
         """
         Called when a file or directory is modified.
 
-        If the modified file is not a directory and its name ends with the filename this instance is watching, 
+        If the modified file is not a directory and its name ends with the filename this instance is watching,
         the `file_modified` flag is set to True.
 
         Args:
