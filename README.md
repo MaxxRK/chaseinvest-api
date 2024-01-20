@@ -132,6 +132,7 @@ This code is also in test.py
 
  ## Implemented Features
  - [x] Login
+ - [x] Login with MFA
  - [x] Get Quotes
  - [x] Get Account Data
  - [x] Place Orders and Receive order confirmation
