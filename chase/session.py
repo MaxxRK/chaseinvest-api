@@ -222,10 +222,14 @@ class ChaseSession:
                     return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
-            traceback.print_exc()
-            print(f"Error logging into Chase: {e}")
-            queue.put((False, 'logged_in'))
-            return False
+            if str(e) == "Code not received in time cannot login.":
+                queue.put((False, 'logged_in'))
+                return False
+            else:
+                traceback.print_exc()
+                print(f"Error logging into Chase: {e}")
+                queue.put((False, 'logged_in'))
+                return False
 
     def __getattr__(self, name):
         """
