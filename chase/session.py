@@ -1,17 +1,11 @@
 import os
 import traceback
+import requests
 from time import sleep
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.chrome.service import Service as ChromiumService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from seleniumwire import webdriver
+
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
 
 from .urls import auth_code_page, login_page
 
@@ -63,7 +57,7 @@ class ChaseSession:
         login(username, password, last_four): Logs into Chase with the provided credentials.
     """
 
-    def __init__(self, title=None, headless=True, docker=False, external_code=False):
+    def __init__(self, external_code=False):
         """
         Initializes a new instance of the ChaseSession class.
 
@@ -72,67 +66,10 @@ class ChaseSession:
             headless (bool, optional): Whether the WebDriver should run in headless mode. Defaults to True.
             docker (bool, optional): Whether the session is running in a Docker container. Defaults to False.
         """
-        self.title: str = title
-        self.headless: bool = headless
-        self.docker: bool = docker
-        self.profile_path: str = ""
         self.external_code: bool = external_code
         self.need_code: bool = False
-        self.driver = self.get_driver()
+        self.session = requests.Session()
 
-    def get_driver(self):
-        """
-        Gets the correct WebDriver for the operating system and initializes it with the necessary options.
-
-        This method configures a Chromium WebDriver with various options to disable infobars, notifications, and GPU usage,
-        and to enable certain experimental options. If the session is persistent, it also sets the user data directory.
-        If the session is running in a Docker container, it configures the WebDriver accordingly.
-
-        Returns:
-            driver (selenium.webdriver.Chrome): The configured WebDriver instance.
-
-        Raises:
-            Exception: If there is an error initializing the WebDriver.
-        """
-        try:
-            options = webdriver.ChromeOptions()
-            if self.headless:
-                options.add_argument("--headless")
-                options.add_argument("--window-size=1920,1080")
-                options.add_argument(
-                    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3"
-                )
-            if self.title is not None:
-                root = os.path.abspath(os.path.dirname(__file__))
-                self.profile_path = os.path.join(root, "Profile", f"Chase_{self.title}")
-                options.add_argument("user-data-dir=%s" % self.profile_path)
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option("useAutomationExtension", False)
-            options.add_argument("disable-blink-features=AutomationControlled")
-            options.add_argument("--disable-notifications")
-            options.add_argument("--disable-infobars")
-            options.add_argument("--log-level=3")
-            if self.docker:
-                options.add_argument("--disable-dev-shm-usage")
-                options.add_argument("--no-sandbox")
-                options.add_argument("--disable-gpu")
-                chrome_service = ChromiumService("/usr/bin/chromedriver")
-                driver = webdriver.Chrome(service=chrome_service, options=options)
-            else:
-                driver = webdriver.Chrome(
-                    service=ChromiumService(
-                        ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-                    ),
-                    options=options,
-                )
-        except Exception as e:
-            print("Error getting Driver: \n")
-            traceback.print_exc(e)
-        if not self.headless:
-            driver.maximize_window()
-        else:
-            driver.set_window_size(1920, 1080)
-        return driver
 
     def get_login_code(self, queue):
         """
@@ -170,7 +107,7 @@ class ChaseSession:
             os.remove(".code")
         return code
 
-    def login(self, username, password, last_four, queue):
+    def login(self, username, password, last_four, queue=None):
         """
         Logs into the website with the provided username and password.
 
@@ -184,73 +121,22 @@ class ChaseSession:
         Raises:
             Exception: If there is an error during the login process.
         """
-        try:
-            self.driver.get(url=login_page())
-            WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.ID, "signin-button"))
-            )
-            self.driver.find_element(By.ID, "userId-text-input-field").send_keys(
-                username
-            )
-            self.driver.find_element(By.ID, "password-text-input-field").send_keys(
-                password
-            )
-            self.driver.find_element(By.ID, "signin-button").click()
-            try:
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (
-                            By.CSS_SELECTOR,
-                            "#header-simplerAuth-dropdownoptions-styledselect",
-                        )
-                    )
-                )
-                contact_btn = self.driver.find_element(
-                    By.CSS_SELECTOR, "#header-simplerAuth-dropdownoptions-styledselect"
-                )
-                contact_btn.click()
-                options_ls = self.driver.find_elements(
-                    By.CSS_SELECTOR, 'li[role="presentation"]'
-                )
-                for item in options_ls:
-                    if "CALL_ME" not in item.text and str(last_four) in item.text:
-                        item.click()
-                        self.driver.find_element(
-                            By.CSS_SELECTOR, 'button[type="submit"]'
-                        ).click()
-
-                WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
-                code = self.get_login_code(queue)
-                self.driver.find_element(By.ID, "otpcode_input-input-field").send_keys(
-                    code
-                )
-                self.driver.find_element(By.ID, "password_input-input-field").send_keys(
-                    password
-                )
-                self.driver.find_element(
-                    By.CSS_SELECTOR, 'button[type="submit"]'
-                ).click()
-                sleep(5)
-            except TimeoutException:
-                pass
-            for _ in range(3):
-                try:
-                    self.driver.find_element(By.ID, "signin-button")
-                    self.driver.refresh()
-                    sleep(5)
-                except NoSuchElementException:
-                    queue.put((True, "logged_in"))
-                    return True
-            raise Exception("Failed to login to Chase")
-        except Exception as e:
-            if str(e) == "Code not received in time cannot login.":
-                queue.put((False, "logged_in"))
-                return False
-            traceback.print_exc()
-            print(f"Error logging into Chase: {e}")
-            queue.put((False, "logged_in"))
-            return False
-
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
+            }
+        )
+        response = self.session.get("https://www.chase.com/ruxitagentjs_ICA27NQVfhqrux_10269230920162641.js")
+        print(response.status_code)
+        self.session.headers.update(response.headers)
+        print(self.session.headers)
+        print(self.session.cookies.get_dict())
+        response = self.session.get("https://www.chase.com/ruxitagentjs_D_10269230920162641.js")
+        print(response.status_code)
+        print(response.headers)
+        print(self.session.cookies.get_dict())
+        
     def __getattr__(self, name):
         """
         Forwards unknown attribute access to session object.
