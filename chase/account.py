@@ -1,10 +1,10 @@
 import gzip
 import json
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from playwright.sync_api import sync_playwright, TimeoutError
+import gzip
+import json
+import asyncio
 
 from .session import ChaseSession
 from .urls import account_info, landing_page
@@ -53,31 +53,27 @@ class AllAccount:
             dict: A dictionary containing the account information, or None if the information could not be retrieved.
         """
         try:
-            self.session.driver.get(landing_page())
-            WebDriverWait(self.session.driver, 60).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#INV_ACCOUNTS"))
-            )
-            for request in self.session.driver.requests:
-                if request.response and request.url in account_info():
-                    body = request.response.body
-                    body = gzip.decompress(body).decode("utf-8")
-                    account_json = json.loads(body)
-                    for info in account_json["cache"]:
-                        if (
-                            info["url"]
-                            == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
-                        ):
-                            invest_json = info["response"]["chaseInvestments"]
-                    if request.response.status_code == 200:
-                        self.total_value = invest_json["investmentSummary"][
-                            "accountValue"
-                        ]
-                        self.total_value_change = invest_json["investmentSummary"][
-                            "accountValueChange"
-                        ]
-                        return invest_json
-                    return None
-        except (TimeoutException, NoSuchElementException):
+            urls = account_info()
+            with self.session.page.expect_request(urls[0]) as first:
+                self.session.page.reload()
+                first_request = first.value
+                body = first_request.response().json()
+                for info in body["cache"]:
+                    if (
+                        info["url"]
+                        == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
+                    ):
+                        invest_json = info["response"]["chaseInvestments"]
+                if first_request.response().status == 200:
+                    self.total_value = invest_json["investmentSummary"][
+                        "accountValue"
+                    ]
+                    self.total_value_change = invest_json["investmentSummary"][
+                        "accountValueChange"
+                    ]
+                    return invest_json
+                return None
+        except TimeoutError:
             print("Timed out waiting for page to load")
             return None
 
