@@ -81,7 +81,8 @@ class AllAccount:
         """
         Retrieves and returns connectors for all accounts associated with the session.
 
-        This method iterates over all accounts in the all_account_info attribute and creates a dictionary where the keys are account IDs and the values are lists containing the corresponding account masks.
+        This method iterates over all accounts in the all_account_info attribute and creates a dictionary
+        where the keys are account IDs and the values are lists containing the corresponding account masks.
 
         Returns:
             dict: A dictionary containing the account connectors, or None if the all_account_info attribute is None.

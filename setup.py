@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="chaseinvest-api",
-    version="0.1.0",
+    version="0.1.1",
     author="MaxxRK",
     author_email="maxxrk@pm.me",
     description="An unofficial API for Chase Invest",
@@ -13,9 +13,9 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     license="MIT",
     url="https://github.com/MaxxRK/chaseinvest-api",
-    download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/v0.1.0.tar.gz",
+    download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/v0.1.1.tar.gz",
     keywords=["CHASE", "API"],
-    install_requires=["selenium", "selenium-wire", "watchdog"],
+    install_requires=["playwright", "playwright-stealth"],
     packages=["chase"],
     classifiers=[
         "Development Status :: 3 - Alpha",

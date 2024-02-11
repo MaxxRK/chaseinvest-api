@@ -2,7 +2,7 @@ import gzip
 import json
 from enum import Enum
 
-from playwright.sync_api import sync_playwright, TimeoutError
+from playwright.sync_api import TimeoutError
 
 from .urls import order_page, order_status, order_info
 from .session import ChaseSession
@@ -27,7 +27,7 @@ class Duration(str, Enum):
     I_C = "IMMEDIATE_OR_CANCEL"
 
 
-class OrderType(str, Enum):
+class OrderSide(str, Enum):
     """
     This is an :class:'~enum.Enum'
     that contains the valid order types for an order.
@@ -62,11 +62,11 @@ class Order:
     def place_order(
         self,
         account_id,
-        quantity,
+        quantity: int,
         price_type: PriceType,
         symbol,
         duration: Duration,
-        order_type: OrderType,
+        order_type: OrderSide,
         limit_price: float = 0.00,
         stop_price: float = 0.00,
         after_hours: bool = True,
@@ -78,12 +78,15 @@ class Order:
         contains the order confirmation data after order placement.
 
         Args:
-            account (str): Account number of the account to place the order in.
+            account_id (str): Account number of the account to place the order in.
+            quantity (int): The number of shares to buy.
+            price_type (PriceType): Price Type i.e. LIMIT, MARKET, STOP, etc.
             symbol (str): Ticker to place the order for.
-            order_type (PriceType): Price Type i.e. LIMIT, MARKET, STOP, etc.
-            quantity (float): The number of shares to buy.
             duration (Duration): Duration of the order i.e. DAY, GT90, etc.
-            price (float, optional): The price to buy the shares at. Defaults to 0.00.
+            order_type (OrderSide): Type of order i.e. BUY, SELL, SELL_ALL.
+            limit_price (float, optional): The price to buy the shares at. Defaults to 0.00.
+            stop_price (float, optional): The price to buy the shares at. Defaults to 0.00.
+            after_hours (bool, optional): Whether you want to place the order after hours. Defaults to True.
             dry_run (bool, optional): Whether you want the order to be placed or not.
                                       Defaults to True.
 

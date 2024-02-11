@@ -16,7 +16,7 @@ class ChaseSession:
     This class provides methods to initialize a WebDriver with the necessary options, log into Chase, and perform other actions on the Chase website.
 
     Attributes:
-        persistent_session (bool): Whether the session should be persistent across multiple uses of the WebDriver.
+        title (str): Denotes the name of the profile and if populated will make the session persistent.
         headless (bool): Whether the WebDriver should run in headless mode.
         docker (bool): Whether the session is running in a Docker container.
         profile_path (str): The path to the user profile directory for the WebDriver.
@@ -30,7 +30,7 @@ class ChaseSession:
         close_browser(): Closes the browser.
     """
 
-    def __init__(self, title=None, persistant_session=True, headless=True, profile_path=None):
+    def __init__(self, headless=True, title=None, profile_path=None):
         """
         Initializes a new instance of the ChaseSession class.
 
@@ -40,9 +40,8 @@ class ChaseSession:
             docker (bool, optional): Whether the session is running in a Docker container. Defaults to False.
             profile_path (str, optional): The path to the user profile directory for the WebDriver. Defaults to None.
         """
-        self.title: str = title
-        self.persistant_session: bool = persistant_session
         self.headless: bool = headless
+        self.title: str = title
         self.profile_path: str = profile_path
         self.password: str = ""
         self.page = None
@@ -50,21 +49,52 @@ class ChaseSession:
         self.get_browser()
     
     def __enter__(self):
+        """
+        Enter the runtime context related to this object.
+
+        The with statement will bind this method’s return value to the target(s) specified in the as clause of the statement.
+
+        Returns:
+            self: Returns the instance of the class.
+        """
         return self
     
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Exit the runtime context related to this object.
+
+        The parameters describe the exception that caused the context to be exited.
+
+        Args:
+            exc_type (Type[BaseException]): The type of the exception.
+            exc_value (BaseException): The instance of the exception.
+            traceback (TracebackType): A traceback object encapsulating the call stack at the point where the exception was raised.
+
+        If the context was exited without an exception, all three arguments will be None.
+        """
         if exc_type is not None:
             print("An error occurred in the context manager:")
             traceback.print_exception(exc_type, exc_value, traceback)
         self.close_browser()
     
     def get_browser(self):
+        """
+        Initializes and returns a browser instance.
+
+        This method checks if a profile path exists, creates one if it doesn't, and then launches a new browser instance with the specified user agent, viewport, and storage state. It also creates a new page in the browser context and applies stealth settings to it.
+
+        Returns:
+            None
+
+        Raises:
+            FileNotFoundError: If the profile path does not exist and cannot be created.
+            Error: If the browser cannot be launched or the page cannot be created.
+        """
+        self.profile_path = os.path.abspath(self.profile_path) if self.profile_path is not None else "."
         if self.title is not None and self.profile_path is None:
-            root = os.path.abspath(os.path.dirname(__file__))
-            self.profile_path = os.path.join(root, "Profile", f"Chase_{self.title}.json")
-        elif self.title is None and self.profile_path is None:
-            root = os.path.abspath(os.path.dirname(__file__))
-            self.profile_path = os.path.join(root, "Profile", "Chase.json")
+            self.profile_path = os.path.join(self.profile_path, f"Chase_{self.title}.json")
+        else:
+            self.profile_path = os.path.join(self.profile_path, "Chase.json")
         if not os.path.exists(self.profile_path):
             os.makedirs(os.path.dirname(self.profile_path), exist_ok=True)
             with open(self.profile_path, 'w') as f:
@@ -76,7 +106,7 @@ class ChaseSession:
         context = self.browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3",
             viewport={"width": 1920, "height": 1080},
-            storage_state=self.profile_path if self.persistant_session else None,
+            storage_state=self.profile_path if self.title is not None else None,
         )
         self.page = context.new_page()
         stealth_sync(self.page)
@@ -139,16 +169,17 @@ class ChaseSession:
                 self.page.wait_for_load_state('load', timeout=30000)
                 return True
             except TimeoutError:
-                if self.persistant_session:
+                if self.title is not None:
                     self.save_storage_state()
                 return False
         except Exception as e:
+            self.close_browser()
             traceback.print_exc()
             raise Exception(f"Error in first step of login into Chase: {e}")
    
     def login_two(self, code):
         """
-        Logs in a user with the provided username and password.
+        Performs the second step of login if 2fa needed.
 
         Args:
             code (str): 2fa code sent to users phone.
@@ -171,11 +202,12 @@ class ChaseSession:
                         self.page.reload()
                         sleep(5)
                     except TimeoutError:
-                        if self.persistant_session:
+                        if self.title is not None:
                             self.save_storage_state()
                         return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
+            self.close_browser()
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
             return False
