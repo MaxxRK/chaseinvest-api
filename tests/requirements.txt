@@ -1,3 +1,2 @@
 playwright
-playwright_stealth
-beautifulsoup4
+playwright-stealth
