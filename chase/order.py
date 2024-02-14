@@ -1,5 +1,3 @@
-import gzip
-import json
 from enum import Enum
 
 from playwright.sync_api import TimeoutError
@@ -219,22 +217,27 @@ class Order:
             order_messages["ORDER INVALID"] = "No invalid order message found."
 
         try:
-            self.session.page.wait_for_navigation(timeout=5000)
-            warning = self.session.page.wait_for_selector(".singleWarning")
-            warning_text = warning.text_content()
-            order_messages["WARNING"] = warning
-            if self.accept_warning:
-                try:
-                    self.session.page.click("#acceptWarnings", timeout=5000)
-                except TimeoutError:
-                    raise Exception("No accept button found. Could not dismiss prompt.")
-            else:
-                return order_messages
+            warning = self.session.page.wait_for_selector(
+                "#equityOverlayContent > div > div",
+                timeout=5000
+            )
+            warning_handle = warning.query_selector("#previewSoftWarning > ul")
+            if warning_handle is not None:
+                warning_text = warning_handle.text_content()
+                order_messages["WARNING"] = warning
+                if self.accept_warning:
+                    try:
+                        accept_btn = warning.wait_for_selector(".button--primary", timeout=5000)
+                        accept_btn.click()
+                    except TimeoutError:
+                        raise Exception("No accept button found. Could not dismiss prompt.")
+                else:
+                    return order_messages
+            order_messages["WARNING"] = "No warning page found."
         except TimeoutError:
             order_messages["WARNING"] = "No warning page found."
 
         try:
-            self.session.page.wait_for_navigation(timeout=5000)
             order_preview = self.session.page.wait_for_selector(".trade-wrapper", timeout=5000)
             order_preview_text = order_preview.text_content()
             order_messages["ORDER PREVIEW"] = order_preview_text
@@ -249,7 +252,6 @@ class Order:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
 
         try:
-            self.session.page.wait_for_navigation(timeout=5000)
             warning = self.session.page.wait_for_selector(
                 "#afterHoursModal > div.markets-message > div",
                 timeout=5000
@@ -260,7 +262,7 @@ class Order:
                 try:
                     self.session.page.click(
                         "#confirmAfterHoursOrder",
-                        timeout=5000
+                        timeout=2000
                     )
                 except TimeoutError:
                     raise Exception("No yes button found. Could not dismiss prompt.")
@@ -270,23 +272,16 @@ class Order:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
 
         try:
-            self.session.page.wait_for_navigation(timeout=5000)
-            order_confirmation = self.session.page.query_selector(
-                "#confirmationHeader",
-                timeout=5000
+            order_outside_handle = self.session.page.wait_for_selector("#equityConfirmation > div", timeout=5000)
+            order_handle = order_outside_handle.query_selector(
+                ".alert__title-text"
             )
-            order_confirmation_alert = self.session.page.wait_for_selector("#confirmationAlert")
-            order_confirmation = (
-                order_confirmation
-                + " "
-                + order_confirmation_alert.text_content()
-            )
-            order_confirmation_trade = self.session.page.wait_for_selector(".trade-wrapper")
-            order_confirmation = (
-                order_confirmation
-                + " "
-                + order_confirmation_trade.text_content()
-            )
+            if order_handle is None:
+                order_messages[
+                    "ORDER CONFIRMATION"
+                ] = "Alert Text not found."
+                return order_messages    
+            order_confirmation = order_handle.text_content()
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
             return order_messages

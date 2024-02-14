@@ -1,7 +1,4 @@
-import gzip
-import json
 from datetime import datetime
-from time import sleep
 
 from playwright.sync_api import sync_playwright, TimeoutError
 

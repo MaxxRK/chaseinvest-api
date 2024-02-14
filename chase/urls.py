@@ -1,6 +1,4 @@
 """ Stores all the urls for the chase website used in this api. """
-
-
 def login_page():
     return "https://secure05c.chase.com/web/auth/#/logon/logon/chaseOnline"
 

@@ -30,7 +30,7 @@ class ChaseSession:
         close_browser(): Closes the browser.
     """
 
-    def __init__(self, headless=True, title=None, profile_path=None):
+    def __init__(self, headless=True, title=None, profile_path="."):
         """
         Initializes a new instance of the ChaseSession class.
 
@@ -90,8 +90,8 @@ class ChaseSession:
             FileNotFoundError: If the profile path does not exist and cannot be created.
             Error: If the browser cannot be launched or the page cannot be created.
         """
-        self.profile_path = os.path.abspath(self.profile_path) if self.profile_path is not None else "."
-        if self.title is not None and self.profile_path is None:
+        self.profile_path = os.path.abspath(self.profile_path)
+        if self.title is not None and self.profile_path == os.path.abspath("."):
             self.profile_path = os.path.join(self.profile_path, f"Chase_{self.title}.json")
         else:
             self.profile_path = os.path.join(self.profile_path, "Chase.json")
@@ -148,7 +148,6 @@ class ChaseSession:
         try:
             self.password = password
             self.page.goto(login_page())
-            self.page.wait_for_load_state('load', timeout=30000)
             self.page.wait_for_selector("#signin-button", timeout=30000)
             self.page.fill("#userId-text-input-field", username)
             self.page.fill("#password-text-input-field", password)
@@ -192,6 +191,7 @@ class ChaseSession:
         """
         
         try:
+            code = str(code)
             self.page.fill("#otpcode_input-input-field", code)
             self.page.fill("#password_input-input-field", self.password)
             self.page.click('button[type="submit"]')
@@ -211,3 +211,4 @@ class ChaseSession:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
             return False
+

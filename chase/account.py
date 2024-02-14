@@ -1,10 +1,4 @@
-import gzip
-import json
-
-from playwright.sync_api import sync_playwright, TimeoutError
-import gzip
-import json
-import asyncio
+from playwright.sync_api import TimeoutError
 
 from .session import ChaseSession
 from .urls import account_info, landing_page
@@ -39,6 +33,8 @@ class AllAccount:
             session (ChaseSession): The session associated with the accounts.
         """
         self.session = session
+        self.total_value = None
+        self.total_value_change = None
         self.all_account_info = self.get_all_account_info()
         self.account_connectors = self.get_account_connectors()
 
@@ -54,28 +50,14 @@ class AllAccount:
         """
         try:
             urls = account_info()
-            with self.session.page.expect_request(urls[0]) as first:
-                self.session.page.reload()
-                first_request = first.value
-                body = first_request.response().json()
-                for info in body["cache"]:
-                    if (
-                        info["url"]
-                        == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
-                    ):
-                        invest_json = info["response"]["chaseInvestments"]
-                if first_request.response().status == 200:
-                    self.total_value = invest_json["investmentSummary"][
-                        "accountValue"
-                    ]
-                    self.total_value_change = invest_json["investmentSummary"][
-                        "accountValueChange"
-                    ]
-                    return invest_json
-                return None
+            invest_json = self.get_investment_json(urls[0])
+            if invest_json is None:
+                invest_json = self.get_investment_json(urls[1])
         except TimeoutError:
             print("Timed out waiting for page to load")
-            return None
+            invest_json = None
+
+        return invest_json
 
     def get_account_connectors(self):
         """
@@ -93,6 +75,22 @@ class AllAccount:
         for item in self.all_account_info["accounts"]:
             account_dict[item["accountId"]] = [item["mask"]]
         return account_dict
+
+    def get_investment_json(self, url):
+        try:
+            with self.session.page.expect_request(url) as request_context:
+                self.session.page.reload()
+                request = request_context.value
+                body = request.response().json()
+                for info in body["cache"]:
+                    if info["url"] == "/svc/rr/accounts/secure/v1/account/detail/inv/list":
+                        invest_json = info["response"]["chaseInvestments"]
+                        if request.response().status == 200:
+                            self.total_value = invest_json["investmentSummary"]["accountValue"]
+                            self.total_value_change = invest_json["investmentSummary"]["accountValueChange"]
+                            return invest_json
+        except (TimeoutError, RuntimeError):
+            return None
 
 
 class AccountDetails:
