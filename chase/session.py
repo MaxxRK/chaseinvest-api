@@ -1,9 +1,9 @@
+import json
 import os
 import traceback
-import json
 from time import sleep
 
-from playwright.sync_api import sync_playwright, TimeoutError
+from playwright.sync_api import TimeoutError, sync_playwright
 from playwright_stealth import stealth_sync
 
 from .urls import login_page
@@ -91,8 +91,8 @@ class ChaseSession:
             Error: If the browser cannot be launched or the page cannot be created.
         """
         self.profile_path = os.path.abspath(self.profile_path)
-        if self.title is not None and self.profile_path == os.path.abspath("."):
-            self.profile_path = os.path.join(self.profile_path, f"Chase_{self.title}.json")
+        if self.title is not None:
+            self.profile_path = os.path.join(self.profile_path, f"Chase_{self.title}.json")   
         else:
             self.profile_path = os.path.join(self.profile_path, "Chase.json")
         if not os.path.exists(self.profile_path):
