@@ -77,20 +77,22 @@ class AllAccount:
         return account_dict
 
     def get_investment_json(self, url):
-        try:
-            with self.session.page.expect_request(url) as request_context:
-                self.session.page.reload()
-                request = request_context.value
-                body = request.response().json()
-                for info in body["cache"]:
-                    if info["url"] == "/svc/rr/accounts/secure/v1/account/detail/inv/list":
-                        invest_json = info["response"]["chaseInvestments"]
-                        if request.response().status == 200:
-                            self.total_value = invest_json["investmentSummary"]["accountValue"]
-                            self.total_value_change = invest_json["investmentSummary"]["accountValueChange"]
-                            return invest_json
-        except (TimeoutError, RuntimeError):
-            return None
+        for i in range(3):
+            try:
+                with self.session.page.expect_request(url) as request_context:
+                    self.session.page.reload()
+                    request = request_context.value
+                    body = request.response().json()
+                    for info in body["cache"]:
+                        if info["url"] == "/svc/rr/accounts/secure/v1/account/detail/inv/list":
+                            invest_json = info["response"]["chaseInvestments"]
+                            if request.response().status == 200:
+                                self.total_value = invest_json["investmentSummary"]["accountValue"]
+                                self.total_value_change = invest_json["investmentSummary"]["accountValueChange"]
+                                return invest_json
+            except (TimeoutError, RuntimeError):
+                if i == 2:
+                    return None
 
 
 class AccountDetails:
