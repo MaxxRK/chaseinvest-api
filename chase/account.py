@@ -1,7 +1,7 @@
 from playwright.sync_api import TimeoutError
 
 from .session import ChaseSession
-from .urls import account_info, landing_page
+from .urls import account_info
 
 
 class AllAccount:
