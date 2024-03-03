@@ -14,7 +14,7 @@ cs = session.ChaseSession(
 login_one = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
 
 # Check if login succeeded without needing 2fa if not then prompt for 2fa code
-if login_one == False:
+if login_one is False:
     print("Login succeeded without needing 2fa...")
 else:
     code = input("Please input code that was sent to your phone: ")
