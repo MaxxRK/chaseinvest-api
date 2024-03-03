@@ -4,7 +4,8 @@ import random
 import traceback
 from time import sleep
 
-from playwright.sync_api import TimeoutError, sync_playwright
+from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .urls import login_page
 
@@ -60,7 +61,7 @@ class ChaseSession:
         """
         return self
     
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, tb):
         """
         Exit the runtime context related to this object.
 
@@ -75,14 +76,16 @@ class ChaseSession:
         """
         if exc_type is not None:
             print("An error occurred in the context manager:")
-            traceback.print_exception(exc_type, exc_value, traceback)
+            traceback.print_exception(exc_type, exc_value, tb)
         self.close_browser()
     
     def get_browser(self):
         """
         Initializes and returns a browser instance.
 
-        This method checks if a profile path exists, creates one if it doesn't, and then launches a new browser instance with the specified user agent, viewport, and storage state. It also creates a new page in the browser context and applies stealth settings to it.
+        This method checks if a profile path exists, creates one if it doesn't,
+        and then launches a new browser instance with the specified user agent,
+        viewport, and storage state. It also creates a new page in the browser context and applies stealth settings to it.
 
         Returns:
             None
@@ -146,7 +149,6 @@ class ChaseSession:
             Exception: If there is an error during the login process in step one.
         """
         try:
-            self.context.tracing.start(screenshots=True, snapshots=True, sources=True)
             self.password = password
             self.page.goto(login_page())
             self.page.wait_for_selector("#signin-button", timeout=30000)
@@ -170,13 +172,11 @@ class ChaseSession:
                 self.page.click('button[type="submit"]')
                 self.page.wait_for_load_state('load', timeout=30000)
                 return True
-            except TimeoutError:
+            except PlaywrightTimeoutError:
                 if self.title is not None:
                     self.save_storage_state()
-                self.context.tracing.stop(path="chase_trace.har")
                 return False
         except Exception as e:
-            self.context.tracing.stop(path="chase_trace.har")
             self.close_browser()
             traceback.print_exc()
             raise Exception(f"Error in first step of login into Chase: {e}")
@@ -194,7 +194,6 @@ class ChaseSession:
         Returns:
             bool: True if login is successful, False otherwise.
         """
-        
         try:
             code = str(code)
             self.page.fill("#otpcode_input-input-field", code)
@@ -206,7 +205,7 @@ class ChaseSession:
                         self.page.wait_for_selector("#signin-button", timeout=30000)
                         self.page.reload()
                         sleep(5)
-                    except TimeoutError:
+                    except PlaywrightTimeoutError:
                         if self.title is not None:
                             self.save_storage_state()
                         return True

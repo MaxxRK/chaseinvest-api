@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from playwright.sync_api import sync_playwright, TimeoutError
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .session import ChaseSession
 from .urls import account_holdings, holdings_json, order_page, quote_endpoint
@@ -74,7 +74,6 @@ class SymbolQuote:
         Returns:
             None
         """
-
         with self.session.page.expect_request(quote_endpoint(self.symbol)) as first:
             self.session.page.goto(order_page(self.account_id))
             self.session.page.wait_for_selector("css=label >> text=Buy")
@@ -122,7 +121,6 @@ class SymbolHoldings:
     Methods:
         get_holdings(): Retrieves and sets the holdings information of the account.
     """
-
     def __init__(self, account_id, session: ChaseSession):
         """
         Initializes a SymbolHoldings object with a given account ID and ChaseSession.
@@ -167,5 +165,5 @@ class SymbolHoldings:
             self.positions = self.raw_json['positions']
             self.positions_summary = self.raw_json['positionsSummary']
             return True
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             return False

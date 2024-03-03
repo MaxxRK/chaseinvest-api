@@ -1,4 +1,4 @@
-from playwright.sync_api import TimeoutError
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .session import ChaseSession
 from .urls import account_info
@@ -53,7 +53,7 @@ class AllAccount:
             invest_json = self.get_investment_json(urls[0])
             if invest_json is None:
                 invest_json = self.get_investment_json(urls[1])
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             print("Timed out waiting for page to load")
             invest_json = None
 
@@ -77,6 +77,25 @@ class AllAccount:
         return account_dict
 
     def get_investment_json(self, url):
+        """
+        Fetches investment data from a given URL.
+
+        This method sends a request to the provided URL and expects a JSON response.
+        The response is expected to contain a "cache" key, which is a list of information.
+        It iterates over this list and checks if the "url" key of each item matches a specific string.
+        If a match is found, it extracts the "chaseInvestments" data from the "response" key.
+        If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
+        and returns the "chaseInvestments" data.
+
+        The method retries the request up to 3 times in case of a PlaywrightTimeoutError or RuntimeError.
+
+        Args:
+            url (str): The URL to fetch the investment data from.
+
+        Returns:
+            dict: The "chaseInvestments" data if the request is successful and the required data is found.
+            None: If the request fails after 3 attempts or if the required data is not found in the response.
+        """
         for i in range(3):
             try:
                 with self.session.page.expect_request(url) as request_context:
@@ -90,7 +109,8 @@ class AllAccount:
                                 self.total_value = invest_json["investmentSummary"]["accountValue"]
                                 self.total_value_change = invest_json["investmentSummary"]["accountValueChange"]
                                 return invest_json
-            except (TimeoutError, RuntimeError):
+                    return None
+            except (PlaywrightTimeoutError, RuntimeError):
                 if i == 2:
                     return None
 

@@ -1,6 +1,6 @@
 from enum import Enum
 
-from playwright.sync_api import TimeoutError
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .urls import order_page, order_status, order_info
 from .session import ChaseSession
@@ -117,7 +117,7 @@ class Order:
                 self.session.page.wait_for_selector("#element-id", state="hidden")
                 order_messages["ORDER INVALID"] = "Order page loaded correctly."
                 break
-            except TimeoutError:
+            except PlaywrightTimeoutError:
                 order_messages[
                     "ORDER INVALID"
                 ] = f"Order page did not load correctly cannot continue. Tried {i + 1} times."
@@ -202,7 +202,7 @@ class Order:
         try:
             self.session.page.wait_for_selector("#previewOrder", timeout=5000)
             self.session.page.click("#previewOrder")
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             raise Exception("No preview button found or it is not interactable. Cannot continue.")
 
         try:
@@ -213,7 +213,7 @@ class Order:
             warning_text = warning.text_content()
             order_messages["ORDER INVALID"] = warning_text
             return order_messages
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             order_messages["ORDER INVALID"] = "No invalid order message found."
 
         try:
@@ -229,12 +229,12 @@ class Order:
                     try:
                         accept_btn = warning.wait_for_selector(".button--primary", timeout=5000)
                         accept_btn.click()
-                    except TimeoutError:
+                    except PlaywrightTimeoutError:
                         raise Exception("No accept button found. Could not dismiss prompt.")
                 else:
                     return order_messages
             order_messages["WARNING"] = "No warning page found."
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             order_messages["WARNING"] = "No warning page found."
 
         try:
@@ -244,11 +244,11 @@ class Order:
             if not dry_run:
                 try:
                     self.session.page.click("#submitOrder", timeout=10000)
-                except TimeoutError:
+                except PlaywrightTimeoutError:
                     raise Exception("No place order button found cannot continue.")
             else:
                 return order_messages
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
 
         try:
@@ -264,11 +264,11 @@ class Order:
                         "#confirmAfterHoursOrder",
                         timeout=2000
                     )
-                except TimeoutError:
+                except PlaywrightTimeoutError:
                     raise Exception("No yes button found. Could not dismiss prompt.")
             else:
                 return order_messages
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
 
         try:
@@ -285,7 +285,7 @@ class Order:
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
             return order_messages
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             order_messages[
                 "ORDER CONFIRMATION"
             ] = "No order confirmation page found. Order Failed."
@@ -312,5 +312,5 @@ class Order:
                 first_request = first.value
                 body = first_request.response().json()
             return body
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             return None
