@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from playwright.sync_api import sync_playwright, TimeoutError
+from playwright.sync_api import TimeoutError, sync_playwright
 
 from .session import ChaseSession
 from .urls import account_holdings, holdings_json, order_page, quote_endpoint
@@ -78,26 +78,35 @@ class SymbolQuote:
         with self.session.page.expect_request(quote_endpoint(self.symbol)) as first:
             self.session.page.goto(order_page(self.account_id))
             self.session.page.wait_for_selector("css=label >> text=Buy")
-            self.session.page.wait_for_selector("#equitySymbolLookup-block-autocomplete-validate-input-field")
-            self.session.page.fill("#equitySymbolLookup-block-autocomplete-validate-input-field", self.symbol)
-            self.session.page.press("#equitySymbolLookup-block-autocomplete-validate-input-field", "Enter")
+            self.session.page.wait_for_selector(
+                "#equitySymbolLookup-block-autocomplete-validate-input-field"
+            )
+            self.session.page.fill(
+                "#equitySymbolLookup-block-autocomplete-validate-input-field",
+                self.symbol,
+            )
+            self.session.page.press(
+                "#equitySymbolLookup-block-autocomplete-validate-input-field", "Enter"
+            )
             first_request = first.value
             body = first_request.response().json()
         self.raw_json = body
-        self.ask_price = float(self.raw_json['askPriceAmount'])
-        self.ask_exchange_code = self.raw_json['askExchangeCode']
-        self.ask_quantity = int(self.raw_json['askQuantity'])
-        self.bid_price = float(self.raw_json['bidPriceAmount'])
-        self.bid_exchange_code = self.raw_json['bidExchangeCode']
-        self.bid_quantity = int(self.raw_json['bidQuantity'])
-        self.change_amount = float(self.raw_json['changeAmount'])
-        self.last_trade_price = float(self.raw_json['lastTradePriceAmount'])
-        self.last_trade_quantity = int(self.raw_json['lastTradeQuantity'])
-        self.last_exchange_code = self.raw_json['lastTradeExchangeCode']
-        self.change_percentage = float(self.raw_json['changePercent'])
-        self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-        self.security_description = self.raw_json['securityDescriptionText']
-        self.security_symbol = self.raw_json['securitySymbolCode']
+        self.ask_price = float(self.raw_json["askPriceAmount"])
+        self.ask_exchange_code = self.raw_json["askExchangeCode"]
+        self.ask_quantity = int(self.raw_json["askQuantity"])
+        self.bid_price = float(self.raw_json["bidPriceAmount"])
+        self.bid_exchange_code = self.raw_json["bidExchangeCode"]
+        self.bid_quantity = int(self.raw_json["bidQuantity"])
+        self.change_amount = float(self.raw_json["changeAmount"])
+        self.last_trade_price = float(self.raw_json["lastTradePriceAmount"])
+        self.last_trade_quantity = int(self.raw_json["lastTradeQuantity"])
+        self.last_exchange_code = self.raw_json["lastTradeExchangeCode"]
+        self.change_percentage = float(self.raw_json["changePercent"])
+        self.as_of_time = datetime.strptime(
+            self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        self.security_description = self.raw_json["securityDescriptionText"]
+        self.security_symbol = self.raw_json["securitySymbolCode"]
 
 
 class SymbolHoldings:
@@ -158,14 +167,22 @@ class SymbolHoldings:
                 first_request = first.value
                 body = first_request.response().json()
             self.raw_json = body
-            self.as_of_time = datetime.strptime(self.raw_json['asOfTimestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-            self.asset_allocation_tool_eligible_indicator = bool(self.raw_json['assetAllocationToolEligibleIndicator'])
-            self.cash_sweep_position_summary = self.raw_json['cashSweepPositionSummary']
-            self.custom_position_allowed_indicator = bool(self.raw_json['customPositionAllowedIndicator'])
-            self.error_responses = self.raw_json['errorResponses']
-            self.performance_allowed_indicator = bool(self.raw_json['performanceAllowedIndicator'])
-            self.positions = self.raw_json['positions']
-            self.positions_summary = self.raw_json['positionsSummary']
+            self.as_of_time = datetime.strptime(
+                self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
+            self.asset_allocation_tool_eligible_indicator = bool(
+                self.raw_json["assetAllocationToolEligibleIndicator"]
+            )
+            self.cash_sweep_position_summary = self.raw_json["cashSweepPositionSummary"]
+            self.custom_position_allowed_indicator = bool(
+                self.raw_json["customPositionAllowedIndicator"]
+            )
+            self.error_responses = self.raw_json["errorResponses"]
+            self.performance_allowed_indicator = bool(
+                self.raw_json["performanceAllowedIndicator"]
+            )
+            self.positions = self.raw_json["positions"]
+            self.positions_summary = self.raw_json["positionsSummary"]
             return True
         except TimeoutError:
             return False

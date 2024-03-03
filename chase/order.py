@@ -2,8 +2,8 @@ from enum import Enum
 
 from playwright.sync_api import TimeoutError
 
-from .urls import order_page, order_status, order_info
 from .session import ChaseSession
+from .urls import order_info, order_page, order_status
 
 
 class PriceType(str, Enum):
@@ -103,15 +103,17 @@ class Order:
             self.session.page.goto(order_page(account_id))
             self.session.page.reload()
             try:
-                self.session.page.wait_for_selector("css=label >> text=Buy",timeout=20000)
+                self.session.page.wait_for_selector(
+                    "css=label >> text=Buy", timeout=20000
+                )
                 quote_box = self.session.page.query_selector(
                     "#equitySymbolLookup-block-autocomplete-validate-input-field"
                 )
-                quote_box.fill('')
+                quote_box.fill("")
                 quote_box.fill(symbol)
                 self.session.page.press(
-                    "#equitySymbolLookup-block-autocomplete-validate-input-field", 
-                    "Enter"
+                    "#equitySymbolLookup-block-autocomplete-validate-input-field",
+                    "Enter",
                 )
                 self.session.page.wait_for_selector(".NOTE", timeout=10000)
                 self.session.page.wait_for_selector("#element-id", state="hidden")
@@ -127,9 +129,7 @@ class Order:
             return order_messages
 
         if order_type == "BUY":
-            buy_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Buy']"
-            )
+            buy_btn = self.session.page.wait_for_selector("xpath=//label[text()='Buy']")
             buy_btn.click()
         elif order_type == "SELL":
             sell_btn = self.session.page.wait_for_selector(
@@ -179,12 +179,16 @@ class Order:
                 return order_messages
 
         if price_type in ["LIMIT", "STOP_LIMIT"]:
-            self.session.page.fill("#tradeLimitPrice-text-input-field", str(limit_price))
+            self.session.page.fill(
+                "#tradeLimitPrice-text-input-field", str(limit_price)
+            )
         if price_type in ["STOP", "STOP_LIMIT"]:
             self.session.page.fill("#tradeStopPrice-text-input-field", str(stop_price))
 
-        quantity_box = self.session.page.wait_for_selector("#tradeQuantity-text-input-field")
-        quantity_box.fill('')
+        quantity_box = self.session.page.wait_for_selector(
+            "#tradeQuantity-text-input-field"
+        )
+        quantity_box.fill("")
         quantity_box.fill(str(quantity))
 
         if duration == "DAY":
@@ -203,12 +207,14 @@ class Order:
             self.session.page.wait_for_selector("#previewOrder", timeout=5000)
             self.session.page.click("#previewOrder")
         except TimeoutError:
-            raise Exception("No preview button found or it is not interactable. Cannot continue.")
+            raise Exception(
+                "No preview button found or it is not interactable. Cannot continue."
+            )
 
         try:
             warning = self.session.page.wait_for_selector(
-                "#entry-trade-wrapper > div > div:nth-child(1) > div > div", 
-                timeout=5000
+                "#entry-trade-wrapper > div > div:nth-child(1) > div > div",
+                timeout=5000,
             )
             warning_text = warning.text_content()
             order_messages["ORDER INVALID"] = warning_text
@@ -218,8 +224,7 @@ class Order:
 
         try:
             warning = self.session.page.wait_for_selector(
-                "#equityOverlayContent > div > div",
-                timeout=5000
+                "#equityOverlayContent > div > div", timeout=5000
             )
             warning_handle = warning.query_selector("#previewSoftWarning > ul")
             if warning_handle is not None:
@@ -227,10 +232,14 @@ class Order:
                 order_messages["WARNING"] = warning
                 if self.accept_warning:
                     try:
-                        accept_btn = warning.wait_for_selector(".button--primary", timeout=5000)
+                        accept_btn = warning.wait_for_selector(
+                            ".button--primary", timeout=5000
+                        )
                         accept_btn.click()
                     except TimeoutError:
-                        raise Exception("No accept button found. Could not dismiss prompt.")
+                        raise Exception(
+                            "No accept button found. Could not dismiss prompt."
+                        )
                 else:
                     return order_messages
             order_messages["WARNING"] = "No warning page found."
@@ -238,7 +247,9 @@ class Order:
             order_messages["WARNING"] = "No warning page found."
 
         try:
-            order_preview = self.session.page.wait_for_selector(".trade-wrapper", timeout=5000)
+            order_preview = self.session.page.wait_for_selector(
+                ".trade-wrapper", timeout=5000
+            )
             order_preview_text = order_preview.text_content()
             order_messages["ORDER PREVIEW"] = order_preview_text
             if not dry_run:
@@ -253,17 +264,13 @@ class Order:
 
         try:
             warning = self.session.page.wait_for_selector(
-                "#afterHoursModal > div.markets-message > div",
-                timeout=5000
+                "#afterHoursModal > div.markets-message > div", timeout=5000
             )
             warning_text = warning.text_content()
             order_messages["AFTER HOURS WARNING"] = warning
             if after_hours:
                 try:
-                    self.session.page.click(
-                        "#confirmAfterHoursOrder",
-                        timeout=2000
-                    )
+                    self.session.page.click("#confirmAfterHoursOrder", timeout=2000)
                 except TimeoutError:
                     raise Exception("No yes button found. Could not dismiss prompt.")
             else:
@@ -272,15 +279,13 @@ class Order:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
 
         try:
-            order_outside_handle = self.session.page.wait_for_selector("#equityConfirmation > div", timeout=5000)
-            order_handle = order_outside_handle.query_selector(
-                ".alert__title-text"
+            order_outside_handle = self.session.page.wait_for_selector(
+                "#equityConfirmation > div", timeout=5000
             )
+            order_handle = order_outside_handle.query_selector(".alert__title-text")
             if order_handle is None:
-                order_messages[
-                    "ORDER CONFIRMATION"
-                ] = "Alert Text not found."
-                return order_messages    
+                order_messages["ORDER CONFIRMATION"] = "Alert Text not found."
+                return order_messages
             order_confirmation = order_handle.text_content()
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
