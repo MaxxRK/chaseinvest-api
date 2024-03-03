@@ -1,10 +1,10 @@
 import json
 import os
+import random
 import traceback
 from time import sleep
 
 from playwright.sync_api import TimeoutError, sync_playwright
-from playwright_stealth import stealth_sync
 
 from .urls import login_page
 
@@ -44,6 +44,7 @@ class ChaseSession:
         self.title: str = title
         self.profile_path: str = profile_path
         self.password: str = ""
+        self.context = None
         self.page = None
         self.playwright = sync_playwright().start()
         self.get_browser()
@@ -99,17 +100,16 @@ class ChaseSession:
             os.makedirs(os.path.dirname(self.profile_path), exist_ok=True)
             with open(self.profile_path, 'w') as f:
                 json.dump({}, f)
+        # Headless mode does not work for chase right now
         if self.headless:
-            self.browser = self.playwright.chromium.launch(headless=True)
+            self.browser = self.playwright.firefox.launch(headless=True)
         else:
-            self.browser = self.playwright.chromium.launch(headless=False)
-        context = self.browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3",
+            self.browser = self.playwright.firefox.launch(headless=False)
+        self.context = self.browser.new_context(
             viewport={"width": 1920, "height": 1080},
             storage_state=self.profile_path if self.title is not None else None,
         )
-        self.page = context.new_page()
-        stealth_sync(self.page)
+        self.page = self.context.new_page()
     
     def save_storage_state(self):
         """
@@ -146,22 +146,25 @@ class ChaseSession:
             Exception: If there is an error during the login process in step one.
         """
         try:
+            self.context.tracing.start(screenshots=True, snapshots=True, sources=True)
             self.password = password
             self.page.goto(login_page())
             self.page.wait_for_selector("#signin-button", timeout=30000)
-            self.page.fill("#userId-text-input-field", username)
-            self.page.fill("#password-text-input-field", password)
+            username_box = self.page.query_selector("#userId-text-input-field")
+            password_box = self.page.query_selector("#password-text-input-field")
+            username_box.type(username, delay=random.randint(50, 500))
+            password_box.type(password, delay=random.randint(50, 500))
+            sleep(random.uniform(1, 3))
             self.page.click('#signin-button')
             try:
                 self.page.wait_for_selector("#header-simplerAuth-dropdownoptions-styledselect", timeout=10000)
                 dropdown = self.page.query_selector("#header-simplerAuth-dropdownoptions-styledselect")
                 dropdown.click()
                 options_ls = self.page.query_selector_all('li[role="presentation"]')
-                for item in options_ls:                 
-                    item_text = self.page.evaluate('(element) => element.textContent', item)
-                    if "CALL_ME" not in item_text and str(last_four) in item_text:
-                        sleep(2)
-                        dropdown.click()
+                for item in options_ls:
+                    item_text = item.text_content()
+                    print(item_text)
+                    if str(last_four) in item_text:
                         item.click()
                         break
                 self.page.click('button[type="submit"]')
@@ -170,8 +173,10 @@ class ChaseSession:
             except TimeoutError:
                 if self.title is not None:
                     self.save_storage_state()
+                self.context.tracing.stop(path="chase_trace.har")
                 return False
         except Exception as e:
+            self.context.tracing.stop(path="chase_trace.har")
             self.close_browser()
             traceback.print_exc()
             raise Exception(f"Error in first step of login into Chase: {e}")
