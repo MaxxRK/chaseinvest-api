@@ -6,16 +6,18 @@ from chase import session
 from chase import symbols as sym
 
 # create Session
-cs = session.ChaseSession(title="Title of your profile here", headless=True, profile_path='your/profile/path')
+cs = session.ChaseSession(
+    title="Title of your profile here", headless=True, profile_path="your/profile/path"
+)
 
 # Login to Chase.com
 login_one = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
 
 # Check if login succeeded without needing 2fa if not then prompt for 2fa code
-if login_one is False:
-    print('Login succeeded without needing 2fa...')
+if login_one == False:
+    print("Login succeeded without needing 2fa...")
 else:
-    code = input('Please input code that was sent to your phone: ')
+    code = input("Please input code that was sent to your phone: ")
     login_two = cs.login_two(code)
 
 # Make all account object

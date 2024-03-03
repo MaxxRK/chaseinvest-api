@@ -103,11 +103,18 @@ class AllAccount:
                     request = request_context.value
                     body = request.response().json()
                     for info in body["cache"]:
-                        if info["url"] == "/svc/rr/accounts/secure/v1/account/detail/inv/list":
+                        if (
+                            info["url"]
+                            == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
+                        ):
                             invest_json = info["response"]["chaseInvestments"]
                             if request.response().status == 200:
-                                self.total_value = invest_json["investmentSummary"]["accountValue"]
-                                self.total_value_change = invest_json["investmentSummary"]["accountValueChange"]
+                                self.total_value = invest_json["investmentSummary"][
+                                    "accountValue"
+                                ]
+                                self.total_value_change = invest_json[
+                                    "investmentSummary"
+                                ]["accountValueChange"]
                                 return invest_json
                     return None
             except (PlaywrightTimeoutError, RuntimeError):

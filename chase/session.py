@@ -49,7 +49,7 @@ class ChaseSession:
         self.page = None
         self.playwright = sync_playwright().start()
         self.get_browser()
-    
+
     def __enter__(self):
         """
         Enter the runtime context related to this object.
@@ -78,7 +78,7 @@ class ChaseSession:
             print("An error occurred in the context manager:")
             traceback.print_exception(exc_type, exc_value, tb)
         self.close_browser()
-    
+
     def get_browser(self):
         """
         Initializes and returns a browser instance.
@@ -96,12 +96,14 @@ class ChaseSession:
         """
         self.profile_path = os.path.abspath(self.profile_path)
         if self.title is not None:
-            self.profile_path = os.path.join(self.profile_path, f"Chase_{self.title}.json")   
+            self.profile_path = os.path.join(
+                self.profile_path, f"Chase_{self.title}.json"
+            )
         else:
             self.profile_path = os.path.join(self.profile_path, "Chase.json")
         if not os.path.exists(self.profile_path):
             os.makedirs(os.path.dirname(self.profile_path), exist_ok=True)
-            with open(self.profile_path, 'w') as f:
+            with open(self.profile_path, "w") as f:
                 json.dump({}, f)
         # Headless mode does not work for chase right now
         if self.headless:
@@ -113,7 +115,7 @@ class ChaseSession:
             storage_state=self.profile_path if self.title is not None else None,
         )
         self.page = self.context.new_page()
-    
+
     def save_storage_state(self):
         """
         Saves the storage state of the browser to a file.
@@ -124,15 +126,15 @@ class ChaseSession:
             filename (str): The name of the file to save the storage state to.
         """
         storage_state = self.page.context.storage_state()
-        with open(self.profile_path, 'w') as f:
+        with open(self.profile_path, "w") as f:
             json.dump(storage_state, f)
-                    
+
     def close_browser(self):
         """Closes the browser."""
         self.save_storage_state()
         self.browser.close()
         self.playwright.stop()
-           
+
     def login(self, username, password, last_four):
         """
         Logs into the website with the provided username and password.
@@ -157,10 +159,14 @@ class ChaseSession:
             username_box.type(username, delay=random.randint(50, 500))
             password_box.type(password, delay=random.randint(50, 500))
             sleep(random.uniform(1, 3))
-            self.page.click('#signin-button')
+            self.page.click("#signin-button")
             try:
-                self.page.wait_for_selector("#header-simplerAuth-dropdownoptions-styledselect", timeout=10000)
-                dropdown = self.page.query_selector("#header-simplerAuth-dropdownoptions-styledselect")
+                self.page.wait_for_selector(
+                    "#header-simplerAuth-dropdownoptions-styledselect", timeout=10000
+                )
+                dropdown = self.page.query_selector(
+                    "#header-simplerAuth-dropdownoptions-styledselect"
+                )
                 dropdown.click()
                 options_ls = self.page.query_selector_all('li[role="presentation"]')
                 for item in options_ls:
@@ -170,7 +176,7 @@ class ChaseSession:
                         item.click()
                         break
                 self.page.click('button[type="submit"]')
-                self.page.wait_for_load_state('load', timeout=30000)
+                self.page.wait_for_load_state("load", timeout=30000)
                 return True
             except PlaywrightTimeoutError:
                 if self.title is not None:
@@ -180,7 +186,7 @@ class ChaseSession:
             self.close_browser()
             traceback.print_exc()
             raise Exception(f"Error in first step of login into Chase: {e}")
-   
+
     def login_two(self, code):
         """
         Performs the second step of login if 2fa needed.
@@ -215,4 +221,3 @@ class ChaseSession:
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
             return False
-
