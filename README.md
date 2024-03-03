@@ -15,6 +15,11 @@ Install using pypi:
 ```
 pip install chaseinvest-api
 ```
+This package requires playwright. After installing chaseinvest-api, you will need to finish the install of playwright. You can do this in most cases by running the command:
+```
+playwright install
+```
+If you would like some more information on this, you can find it [here](https://playwright.dev/python/docs/intro).
 
 ## Quikstart
 The code below will: 
@@ -27,24 +32,28 @@ The code below will:
 import sys
 
 from chase import account as acc
-from chase import order as ord
+from chase import order as och
 from chase import session
 from chase import symbols as sym
 
 # create Session
-cs = session.ChaseSession(persistant_session=True, docker=False)
+cs = session.ChaseSession(title="Title of your profile here", headless=True, profile_path='your/profile/path')
 
 # Login to Chase.com
-login = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
+login_one = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
 
-if login == False:
-    sys.exit('Failed to login to chase.com')
+# Check if login succeeded without needing 2fa if not then prompt for 2fa code
+if login_one == False:
+    print('Login succeeded without needing 2fa...')
+else:
+    code = input('Please input code that was sent to your phone: ')
+    login_two = cs.login_two(code)
 
 # Make all account object
 all_accounts = acc.AllAccount(cs)
 
-if all_accounts.account_connectors == None:
-    sys.exit('Failed to get account connectors exiting script...')
+if all_accounts.account_connectors is None:
+    sys.exit("Failed to get account connectors exiting script...")
 
 # Get Account Identifiers
 print("====================================")
@@ -57,12 +66,8 @@ print("====================================")
 print("ACCOUNT DETAILS")
 print("====================================")
 for account in account_ids:
-    account = account.AccountDetails(account, all_accounts)
-    print( 
-          account.nickname,
-          account.mask,
-          account.account_value
-    )
+    account = acc.AccountDetails(account, all_accounts)
+    print(account.nickname, account.mask, account.account_value)
 print("====================================")
 
 # Get Holdings
@@ -70,32 +75,34 @@ print("====================================")
 print("HOLDINGS")
 for account in account_ids:
     print("====================================")
-    print(f"Account: {account}")
+    print(f"Account: {all_accounts.account_connectors[account]}")
     symbols = sym.SymbolHoldings(account, cs)
     success = symbols.get_holdings()
     if success:
         for i, symbol in enumerate(symbols.positions):
-            if symbols.positions[i]['instrumentLongName'] == 'Cash and Sweep Funds':
-                symbol =  symbols.positions[i]['instrumentLongName']
-                value = symbols.positions[i]['marketValue']['baseValueAmount']
+            if symbols.positions[i]["instrumentLongName"] == "Cash and Sweep Funds":
+                symbol = symbols.positions[i]["instrumentLongName"]
+                value = symbols.positions[i]["marketValue"]["baseValueAmount"]
                 print(f"Symbol: {symbol} Value: {value}")
-            elif symbols.positions[i]['assetCategoryName'] == 'EQUITY':
+            elif symbols.positions[i]["assetCategoryName"] == "EQUITY":
                 try:
-                    symbol = symbols.positions[i]['positionComponents'][0]['securityIdDetail'][0]['symbolSecurityIdentifier']
-                    value = symbols.positions[i]['marketValue']['baseValueAmount']
-                    quantity = symbols.positions[i]['tradedUnitQuantity']
+                    symbol = symbols.positions[i]["positionComponents"][0][
+                        "securityIdDetail"
+                    ][0]["symbolSecurityIdentifier"]
+                    value = symbols.positions[i]["marketValue"]["baseValueAmount"]
+                    quantity = symbols.positions[i]["tradedUnitQuantity"]
                     print(f"Symbol: {symbol} Value: {value} Quantity: {quantity}")
                 except KeyError:
-                    symbol = symbols.positions[i]['securityIdDetail']['cusipIdentifier']
-                    value = symbols.positions[i]['marketValue']['baseValueAmount']
-                    quantity = symbols.positions[i]['tradedUnitQuantity']
+                    symbol = symbols.positions[i]["securityIdDetail"]["cusipIdentifier"]
+                    value = symbols.positions[i]["marketValue"]["baseValueAmount"]
+                    quantity = symbols.positions[i]["tradedUnitQuantity"]
                     print(f"Symbol: {symbol} Value: {value} Quantity: {quantity}")
     else:
-        print(f'Failed to get holdings for account {account}')
+        print(f"Failed to get holdings for account {account}")
 print("====================================")
 
 # Create Order Object
-order = ord.Order(cs)
+order = och.Order(cs)
 
 # Get Order Statuses
 print("====================================")
@@ -103,29 +110,41 @@ print("ORDER STATUSES")
 for account in account_ids:
     order_statuses = order.get_order_statuses(account)
     print("====================================")
-    print(f"Account: {account}")
-    for order_status in order_statuses['orderSummaries']:
-        order_number = order_status['orderIdentifier']
-        order_type = order_status['tradeActionCode']
-        order_status_code = order_status['orderStatusCode']
-        print(f"Order Number: {order_number} Side: {order_type} Status: {order_status_code}")
+    print(f"Account: {all_accounts.account_connectors[account]}")
+    for order_status in order_statuses["orderSummaries"]:
+        order_number = order_status["orderIdentifier"]
+        order_type = order_status["tradeActionCode"]
+        order_status_code = order_status["orderStatusCode"]
+        print(
+            f"Order Number: {order_number} Side: {order_type} Status: {order_status_code}"
+        )
 print("====================================")
 
 # Get quote for INTC
-symbol_quote = sym.SymbolQuote(account_ids[0], cs, 'INTC')
+symbol_quote = sym.SymbolQuote(account_ids[0], cs, "INTC")
 print("====================================")
 print("SYMBOL QUOTE")
-print(f'{symbol_quote.security_description} ask price {symbol_quote.ask_price}, @{symbol_quote.as_of_time} and the last trade was {symbol_quote.last_trade_price}.')
+print(
+    f"{symbol_quote.security_description} ask price {symbol_quote.ask_price}, @{symbol_quote.as_of_time} and the last trade was {symbol_quote.last_trade_price}."
+)
 print("====================================")
 
 # Place dry run order for INTC
-messages = order.place_order(account_ids[0], 1, ord.PriceType.MARKET, 'INTC', ord.Duration.DAY, ord.OrderType.BUY, dry_run=True)
-if messages['ORDER CONFIRMATION'] != '':
-    print(messages['ORDER CONFIRMATION'])
+messages = order.place_order(
+    account_ids[0],
+    1,
+    och.PriceType.MARKET,
+    "INTC",
+    och.Duration.DAY,
+    och.OrderSide.BUY,
+    dry_run=True,
+)
+if messages["ORDER CONFIRMATION"] != "":
+    print(messages["ORDER CONFIRMATION"])
 else:
     print(messages)
-
 ```
+
 This code is also in test.py
 
 ---

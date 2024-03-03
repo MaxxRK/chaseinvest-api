@@ -1,13 +1,7 @@
-import gzip
-import json
-
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .session import ChaseSession
-from .urls import account_info, landing_page
+from .urls import account_info
 
 
 class AllAccount:
@@ -39,6 +33,8 @@ class AllAccount:
             session (ChaseSession): The session associated with the accounts.
         """
         self.session = session
+        self.total_value = None
+        self.total_value_change = None
         self.all_account_info = self.get_all_account_info()
         self.account_connectors = self.get_account_connectors()
 
@@ -53,39 +49,22 @@ class AllAccount:
             dict: A dictionary containing the account information, or None if the information could not be retrieved.
         """
         try:
-            self.session.driver.get(landing_page())
-            WebDriverWait(self.session.driver, 60).until(
-                EC.presence_of_all_elements_located((By.CSS_SELECTOR, "#INV_ACCOUNTS"))
-            )
-            for request in self.session.driver.requests:
-                if request.response and request.url in account_info():
-                    body = request.response.body
-                    body = gzip.decompress(body).decode("utf-8")
-                    account_json = json.loads(body)
-                    for info in account_json["cache"]:
-                        if (
-                            info["url"]
-                            == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
-                        ):
-                            invest_json = info["response"]["chaseInvestments"]
-                    if request.response.status_code == 200:
-                        self.total_value = invest_json["investmentSummary"][
-                            "accountValue"
-                        ]
-                        self.total_value_change = invest_json["investmentSummary"][
-                            "accountValueChange"
-                        ]
-                        return invest_json
-                    return None
-        except (TimeoutException, NoSuchElementException):
+            urls = account_info()
+            invest_json = self.get_investment_json(urls[0])
+            if invest_json is None:
+                invest_json = self.get_investment_json(urls[1])
+        except PlaywrightTimeoutError:
             print("Timed out waiting for page to load")
-            return None
+            invest_json = None
+
+        return invest_json
 
     def get_account_connectors(self):
         """
         Retrieves and returns connectors for all accounts associated with the session.
 
-        This method iterates over all accounts in the all_account_info attribute and creates a dictionary where the keys are account IDs and the values are lists containing the corresponding account masks.
+        This method iterates over all accounts in the all_account_info attribute and creates a dictionary
+        where the keys are account IDs and the values are lists containing the corresponding account masks.
 
         Returns:
             dict: A dictionary containing the account connectors, or None if the all_account_info attribute is None.
@@ -96,6 +75,51 @@ class AllAccount:
         for item in self.all_account_info["accounts"]:
             account_dict[item["accountId"]] = [item["mask"]]
         return account_dict
+
+    def get_investment_json(self, url):
+        """
+        Fetches investment data from a given URL.
+
+        This method sends a request to the provided URL and expects a JSON response.
+        The response is expected to contain a "cache" key, which is a list of information.
+        It iterates over this list and checks if the "url" key of each item matches a specific string.
+        If a match is found, it extracts the "chaseInvestments" data from the "response" key.
+        If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
+        and returns the "chaseInvestments" data.
+
+        The method retries the request up to 3 times in case of a PlaywrightTimeoutError or RuntimeError.
+
+        Args:
+            url (str): The URL to fetch the investment data from.
+
+        Returns:
+            dict: The "chaseInvestments" data if the request is successful and the required data is found.
+            None: If the request fails after 3 attempts or if the required data is not found in the response.
+        """
+        for i in range(3):
+            try:
+                with self.session.page.expect_request(url) as request_context:
+                    self.session.page.reload()
+                    request = request_context.value
+                    body = request.response().json()
+                    for info in body["cache"]:
+                        if (
+                            info["url"]
+                            == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
+                        ):
+                            invest_json = info["response"]["chaseInvestments"]
+                            if request.response().status == 200:
+                                self.total_value = invest_json["investmentSummary"][
+                                    "accountValue"
+                                ]
+                                self.total_value_change = invest_json[
+                                    "investmentSummary"
+                                ]["accountValueChange"]
+                                return invest_json
+                    return None
+            except (PlaywrightTimeoutError, RuntimeError):
+                if i == 2:
+                    return None
 
 
 class AccountDetails:

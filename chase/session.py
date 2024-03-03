@@ -1,48 +1,13 @@
+import json
 import os
+import random
 import traceback
 from time import sleep
 
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-from selenium.webdriver.chrome.service import Service as ChromiumService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from seleniumwire import webdriver
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.os_manager import ChromeType
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
-from .urls import auth_code_page, login_page
-
-
-class FileChange(FileSystemEventHandler):
-    """
-    A class that inherits from FileSystemEventHandler to handle file change events.
-
-    This class overrides the `on_modified` method from FileSystemEventHandler to set a flag when a specific file is modified.
-
-    Attributes:
-        filename (str): The name of the file to watch for modifications.
-        file_modified (bool): A flag that indicates whether the file has been modified.
-    """
-
-    def __init__(self, filename):
-        self.filename = filename
-        self.file_modified = False
-
-    def on_modified(self, event):
-        """
-        Called when a file or directory is modified.
-
-        If the modified file is not a directory and its name ends with the filename this instance is watching,
-        the `file_modified` flag is set to True.
-
-        Args:
-            event (FileSystemEvent): The event object representing the file system event.
-        """
-        if not event.is_directory and event.src_path.endswith(self.filename):
-            self.file_modified = True
+from .urls import login_page
 
 
 class ChaseSession:
@@ -52,18 +17,21 @@ class ChaseSession:
     This class provides methods to initialize a WebDriver with the necessary options, log into Chase, and perform other actions on the Chase website.
 
     Attributes:
-        persistent_session (bool): Whether the session should be persistent across multiple uses of the WebDriver.
+        title (str): Denotes the name of the profile and if populated will make the session persistent.
         headless (bool): Whether the WebDriver should run in headless mode.
         docker (bool): Whether the session is running in a Docker container.
         profile_path (str): The path to the user profile directory for the WebDriver.
         driver (selenium.webdriver.Chrome): The WebDriver instance used to interact with the Chase website.
 
     Methods:
-        get_driver(): Initializes and returns a WebDriver with the necessary options.
+        get_browser(): Initializes and returns a WebDriver with the necessary options.
         login(username, password, last_four): Logs into Chase with the provided credentials.
+        login_two(code): Logs into Chase with the provided two-factor authentication code.
+        save_storage_state(): Saves the storage state of the browser to a file.
+        close_browser(): Closes the browser.
     """
 
-    def __init__(self, title=None, headless=True, docker=False, external_code=False):
+    def __init__(self, headless=True, title=None, profile_path="."):
         """
         Initializes a new instance of the ChaseSession class.
 
@@ -71,106 +39,103 @@ class ChaseSession:
             title (string): Denotes the name of the profile and if populated will make the session persistent.
             headless (bool, optional): Whether the WebDriver should run in headless mode. Defaults to True.
             docker (bool, optional): Whether the session is running in a Docker container. Defaults to False.
+            profile_path (str, optional): The path to the user profile directory for the WebDriver. Defaults to None.
         """
-        self.title: str = title
         self.headless: bool = headless
-        self.docker: bool = docker
-        self.profile_path: str = ""
-        self.external_code: bool = external_code
-        self.need_code: bool = False
-        self.driver = self.get_driver()
+        self.title: str = title
+        self.profile_path: str = profile_path
+        self.password: str = ""
+        self.context = None
+        self.page = None
+        self.playwright = sync_playwright().start()
+        self.get_browser()
 
-    def get_driver(self):
+    def __enter__(self):
         """
-        Gets the correct WebDriver for the operating system and initializes it with the necessary options.
+        Enter the runtime context related to this object.
 
-        This method configures a Chromium WebDriver with various options to disable infobars, notifications, and GPU usage,
-        and to enable certain experimental options. If the session is persistent, it also sets the user data directory.
-        If the session is running in a Docker container, it configures the WebDriver accordingly.
+        The with statement will bind this method’s return value to the target(s) specified in the as clause of the statement.
 
         Returns:
-            driver (selenium.webdriver.Chrome): The configured WebDriver instance.
-
-        Raises:
-            Exception: If there is an error initializing the WebDriver.
+            self: Returns the instance of the class.
         """
-        try:
-            options = webdriver.ChromeOptions()
-            if self.headless:
-                options.add_argument("--headless")
-                options.add_argument("--window-size=1920,1080")
-                options.add_argument(
-                    "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3"
-                )
-            if self.title is not None:
-                root = os.path.abspath(os.path.dirname(__file__))
-                self.profile_path = os.path.join(root, "Profile", f"Chase_{self.title}")
-                options.add_argument("user-data-dir=%s" % self.profile_path)
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option("useAutomationExtension", False)
-            options.add_argument("disable-blink-features=AutomationControlled")
-            options.add_argument("--disable-notifications")
-            options.add_argument("--disable-infobars")
-            options.add_argument("--log-level=3")
-            if self.docker:
-                options.add_argument("--disable-dev-shm-usage")
-                options.add_argument("--no-sandbox")
-                options.add_argument("--disable-gpu")
-                chrome_service = ChromiumService("/usr/bin/chromedriver")
-                driver = webdriver.Chrome(service=chrome_service, options=options)
-            else:
-                driver = webdriver.Chrome(
-                    service=ChromiumService(
-                        ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()
-                    ),
-                    options=options,
-                )
-        except Exception as e:
-            print("Error getting Driver: \n")
-            traceback.print_exc(e)
-        if not self.headless:
-            driver.maximize_window()
-        else:
-            driver.set_window_size(1920, 1080)
-        return driver
+        return self
 
-    def get_login_code(self, queue):
+    def __exit__(self, exc_type, exc_value, tb):
         """
-        Gets the login code from the user. Either from discord or from the terminal.
+        Exit the runtime context related to this object.
+
+        The parameters describe the exception that caused the context to be exited.
 
         Args:
-            external_code (bool, optional): Whether the code should be retrieved externally. Defaults to False.
+            exc_type (Type[BaseException]): The type of the exception.
+            exc_value (BaseException): The instance of the exception.
+            traceback (TracebackType): A traceback object encapsulating the call stack at the point where the exception was raised.
+
+        If the context was exited without an exception, all three arguments will be None.
+        """
+        if exc_type is not None:
+            print("An error occurred in the context manager:")
+            traceback.print_exception(exc_type, exc_value, tb)
+        self.close_browser()
+
+    def get_browser(self):
+        """
+        Initializes and returns a browser instance.
+
+        This method checks if a profile path exists, creates one if it doesn't,
+        and then launches a new browser instance with the specified user agent,
+        viewport, and storage state. It also creates a new page in the browser context and applies stealth settings to it.
 
         Returns:
-            code (str): The login code.
+            None
+
+        Raises:
+            FileNotFoundError: If the profile path does not exist and cannot be created.
+            Error: If the browser cannot be launched or the page cannot be created.
         """
-        if not self.external_code:
-            code = input("Please enter the code sent to your phone: ")
+        self.profile_path = os.path.abspath(self.profile_path)
+        if self.title is not None:
+            self.profile_path = os.path.join(
+                self.profile_path, f"Chase_{self.title}.json"
+            )
         else:
-            self.need_code = True
-            queue.put((self.need_code, "code"))
-            event_handler = FileChange(".code")
-            observer = Observer()
-            observer.schedule(event_handler, path=".", recursive=False)
-            observer.start()
+            self.profile_path = os.path.join(self.profile_path, "Chase.json")
+        if not os.path.exists(self.profile_path):
+            os.makedirs(os.path.dirname(self.profile_path), exist_ok=True)
+            with open(self.profile_path, "w") as f:
+                json.dump({}, f)
+        # Headless mode does not work for chase right now
+        if self.headless:
+            self.browser = self.playwright.firefox.launch(headless=True)
+        else:
+            self.browser = self.playwright.firefox.launch(headless=False)
+        self.context = self.browser.new_context(
+            viewport={"width": 1920, "height": 1080},
+            storage_state=self.profile_path if self.title is not None else None,
+        )
+        self.page = self.context.new_page()
 
-            # Wait for the file to be modified
-            for i in range(0, 120):
-                sleep(1)
-                if event_handler.file_modified:
-                    break
-                if i == 119:
-                    raise Exception("Code not received in time cannot login.")
+    def save_storage_state(self):
+        """
+        Saves the storage state of the browser to a file.
 
-            observer.stop()
-            observer.join()
+        This method saves the storage state of the browser to a file so that it can be restored later.
 
-            with open(".code", "r") as f:
-                code = f.read()
-            os.remove(".code")
-        return code
+        Args:
+            filename (str): The name of the file to save the storage state to.
+        """
+        storage_state = self.page.context.storage_state()
+        with open(self.profile_path, "w") as f:
+            json.dump(storage_state, f)
 
-    def login(self, username, password, last_four, queue):
+    def close_browser(self):
+        """Closes the browser."""
+        self.save_storage_state()
+        self.browser.close()
+        self.playwright.stop()
+
+    def login(self, username, password, last_four):
         """
         Logs into the website with the provided username and password.
 
@@ -180,85 +145,79 @@ class ChaseSession:
         Args:
             username (str): The user's username.
             password (str): The user's password.
+            last_four (int): The last four digits of the user's phone number.
 
         Raises:
-            Exception: If there is an error during the login process.
+            Exception: If there is an error during the login process in step one.
         """
         try:
-            self.driver.get(url=login_page())
-            WebDriverWait(self.driver, 60).until(
-                EC.presence_of_element_located((By.ID, "signin-button"))
-            )
-            self.driver.find_element(By.ID, "userId-text-input-field").send_keys(
-                username
-            )
-            self.driver.find_element(By.ID, "password-text-input-field").send_keys(
-                password
-            )
-            self.driver.find_element(By.ID, "signin-button").click()
+            self.password = password
+            self.page.goto(login_page())
+            self.page.wait_for_selector("#signin-button", timeout=30000)
+            username_box = self.page.query_selector("#userId-text-input-field")
+            password_box = self.page.query_selector("#password-text-input-field")
+            username_box.type(username, delay=random.randint(50, 500))
+            password_box.type(password, delay=random.randint(50, 500))
+            sleep(random.uniform(1, 3))
+            self.page.click("#signin-button")
             try:
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (
-                            By.CSS_SELECTOR,
-                            "#header-simplerAuth-dropdownoptions-styledselect",
-                        )
-                    )
+                self.page.wait_for_selector(
+                    "#header-simplerAuth-dropdownoptions-styledselect", timeout=10000
                 )
-                contact_btn = self.driver.find_element(
-                    By.CSS_SELECTOR, "#header-simplerAuth-dropdownoptions-styledselect"
+                dropdown = self.page.query_selector(
+                    "#header-simplerAuth-dropdownoptions-styledselect"
                 )
-                contact_btn.click()
-                options_ls = self.driver.find_elements(
-                    By.CSS_SELECTOR, 'li[role="presentation"]'
-                )
+                dropdown.click()
+                options_ls = self.page.query_selector_all('li[role="presentation"]')
                 for item in options_ls:
-                    if "CALL_ME" not in item.text and str(last_four) in item.text:
+                    item_text = item.text_content()
+                    print(item_text)
+                    if str(last_four) in item_text:
                         item.click()
-                        self.driver.find_element(
-                            By.CSS_SELECTOR, 'button[type="submit"]'
-                        ).click()
+                        break
+                self.page.click('button[type="submit"]')
+                self.page.wait_for_load_state("load", timeout=30000)
+                return True
+            except PlaywrightTimeoutError:
+                if self.title is not None:
+                    self.save_storage_state()
+                return False
+        except Exception as e:
+            self.close_browser()
+            traceback.print_exc()
+            raise Exception(f"Error in first step of login into Chase: {e}")
 
-                WebDriverWait(self.driver, 60).until(EC.url_matches(auth_code_page()))
-                code = self.get_login_code(queue)
-                self.driver.find_element(By.ID, "otpcode_input-input-field").send_keys(
-                    code
-                )
-                self.driver.find_element(By.ID, "password_input-input-field").send_keys(
-                    password
-                )
-                self.driver.find_element(
-                    By.CSS_SELECTOR, 'button[type="submit"]'
-                ).click()
-                sleep(5)
-            except TimeoutException:
-                pass
+    def login_two(self, code):
+        """
+        Performs the second step of login if 2fa needed.
+
+        Args:
+            code (str): 2fa code sent to users phone.
+
+        Raises:
+            Exception: Failed to login to chase.
+
+        Returns:
+            bool: True if login is successful, False otherwise.
+        """
+        try:
+            code = str(code)
+            self.page.fill("#otpcode_input-input-field", code)
+            self.page.fill("#password_input-input-field", self.password)
+            self.page.click('button[type="submit"]')
+            sleep(5)
             for _ in range(3):
                 try:
-                    self.driver.find_element(By.ID, "signin-button")
-                    self.driver.refresh()
+                    self.page.wait_for_selector("#signin-button", timeout=30000)
+                    self.page.reload()
                     sleep(5)
-                except NoSuchElementException:
-                    queue.put((True, "logged_in"))
+                except PlaywrightTimeoutError:
+                    if self.title is not None:
+                        self.save_storage_state()
                     return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
-            if str(e) == "Code not received in time cannot login.":
-                queue.put((False, "logged_in"))
-                return False
+            self.close_browser()
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
-            queue.put((False, "logged_in"))
             return False
-
-    def __getattr__(self, name):
-        """
-        Forwards unknown attribute access to session object.
-
-        Args:
-            name (str): The name of the attribute to be accessed.
-
-        Returns:
-            The value of the requested attribute from the session object.
-        """
-        return getattr(self.session, name)

@@ -6,13 +6,19 @@ from chase import session
 from chase import symbols as sym
 
 # create Session
-cs = session.ChaseSession(title="Title of your profile here", docker=False)
+cs = session.ChaseSession(
+    title="Title of your profile here", headless=True, profile_path="your/profile/path"
+)
 
 # Login to Chase.com
-login = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
+login_one = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
 
-if login is False:
-    sys.exit("Failed to login to chase.com")
+# Check if login succeeded without needing 2fa if not then prompt for 2fa code
+if login_one is False:
+    print("Login succeeded without needing 2fa...")
+else:
+    code = input("Please input code that was sent to your phone: ")
+    login_two = cs.login_two(code)
 
 # Make all account object
 all_accounts = acc.AllAccount(cs)
@@ -40,7 +46,7 @@ print("====================================")
 print("HOLDINGS")
 for account in account_ids:
     print("====================================")
-    print(f"Account: {account}")
+    print(f"Account: {all_accounts.account_connectors[account]}")
     symbols = sym.SymbolHoldings(account, cs)
     success = symbols.get_holdings()
     if success:
@@ -75,7 +81,7 @@ print("ORDER STATUSES")
 for account in account_ids:
     order_statuses = order.get_order_statuses(account)
     print("====================================")
-    print(f"Account: {account}")
+    print(f"Account: {all_accounts.account_connectors[account]}")
     for order_status in order_statuses["orderSummaries"]:
         order_number = order_status["orderIdentifier"]
         order_type = order_status["tradeActionCode"]
@@ -101,7 +107,7 @@ messages = order.place_order(
     och.PriceType.MARKET,
     "INTC",
     och.Duration.DAY,
-    och.OrderType.BUY,
+    och.OrderSide.BUY,
     dry_run=True,
 )
 if messages["ORDER CONFIRMATION"] != "":
