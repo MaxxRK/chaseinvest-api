@@ -130,6 +130,7 @@ class SymbolHoldings:
     Methods:
         get_holdings(): Retrieves and sets the holdings information of the account.
     """
+
     def __init__(self, account_id, session: ChaseSession):
         """
         Initializes a SymbolHoldings object with a given account ID and ChaseSession.

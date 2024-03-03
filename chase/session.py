@@ -4,8 +4,8 @@ import random
 import traceback
 from time import sleep
 
-from playwright.sync_api import sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 from .urls import login_page
 
@@ -60,7 +60,7 @@ class ChaseSession:
             self: Returns the instance of the class.
         """
         return self
-    
+
     def __exit__(self, exc_type, exc_value, tb):
         """
         Exit the runtime context related to this object.
@@ -207,14 +207,14 @@ class ChaseSession:
             self.page.click('button[type="submit"]')
             sleep(5)
             for _ in range(3):
-                    try:
-                        self.page.wait_for_selector("#signin-button", timeout=30000)
-                        self.page.reload()
-                        sleep(5)
-                    except PlaywrightTimeoutError:
-                        if self.title is not None:
-                            self.save_storage_state()
-                        return True
+                try:
+                    self.page.wait_for_selector("#signin-button", timeout=30000)
+                    self.page.reload()
+                    sleep(5)
+                except PlaywrightTimeoutError:
+                    if self.title is not None:
+                        self.save_storage_state()
+                    return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
             self.close_browser()
