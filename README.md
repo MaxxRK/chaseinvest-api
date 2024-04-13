@@ -3,7 +3,7 @@
 
  This is not an official api! This api's functionality may change at any time.
 
- This api provides a means of buying and selling stocks through Chase. It uses selenium-wire to scrape response data and selenium to interact with the website.
+ This api provides a means of buying and selling stocks through Chase. It uses playwright to scrape response data and to interact with the website.
 
  ---
 
