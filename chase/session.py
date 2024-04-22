@@ -171,7 +171,6 @@ class ChaseSession:
                 options_ls = self.page.query_selector_all('li[role="presentation"]')
                 for item in options_ls:
                     item_text = item.text_content()
-                    print(item_text)
                     if str(last_four) in item_text:
                         item.click()
                         break
