@@ -21,7 +21,7 @@ playwright install
 ```
 If you would like some more information on this, you can find it [here](https://playwright.dev/python/docs/intro).
 
-## Quikstart
+## Quickstart
 The code below will: 
 - Login and print account info. 
 - Get a quote for 'INTC' and print out the information
