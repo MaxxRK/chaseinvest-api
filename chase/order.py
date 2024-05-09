@@ -91,7 +91,7 @@ class Order:
         Returns:
             Order:order_confirmation: Dictionary containing the order confirmation data.
         """
-        
+
         self.session.page.goto(order_page(account_id))
         experience = self.session.page.wait_for_selector(
                 "span > a > span.link__text"
@@ -99,7 +99,7 @@ class Order:
         if experience.text_content() == "Switch back to classic trading experience":
             experience.click()
             self.session.page.reload()
-        
+
         order_messages = {
             "ORDER INVALID": "",
             "WARNING": "",
