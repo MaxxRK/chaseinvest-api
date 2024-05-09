@@ -31,7 +31,7 @@ class ChaseSession:
         close_browser(): Closes the browser.
     """
 
-    def __init__(self, headless=True, title=None, profile_path="."):
+    def __init__(self, headless=True, title=None, profile_path=".", debug=False):
         """
         Initializes a new instance of the ChaseSession class.
 
@@ -47,6 +47,7 @@ class ChaseSession:
         self.password: str = ""
         self.context = None
         self.page = None
+        self.debug: bool = debug
         self.playwright = sync_playwright().start()
         self.get_browser()
 
@@ -114,7 +115,10 @@ class ChaseSession:
             viewport={"width": 1920, "height": 1080},
             storage_state=self.profile_path if self.title is not None else None,
         )
+        if self.debug:
+            self.context.tracing.start(name="chase_trace", screenshots=True, snapshots=True)
         self.page = self.context.new_page()
+        
 
     def save_storage_state(self):
         """
@@ -132,6 +136,8 @@ class ChaseSession:
     def close_browser(self):
         """Closes the browser."""
         self.save_storage_state()
+        if self.debug:
+            self.context.tracing.stop(path='./chase_trace.zip')
         self.browser.close()
         self.playwright.stop()
 

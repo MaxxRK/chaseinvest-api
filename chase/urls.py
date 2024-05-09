@@ -56,21 +56,6 @@ def order_page(account_id):
     return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym="
 
 
-def quote_endpoint(ticker):
-    """
-    Generates the URL for the quote endpoint for a specific ticker.
-
-    This function takes a ticker symbol as an argument and returns the URL for the
-    quote endpoint for that ticker on the Chase website.
-
-    Args:
-        ticker (str): The ticker symbol for which to generate the URL.
-
-    Returns:
-        str: The URL for the quote endpoint for the specified ticker.
-    """
-    return f"https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes?securitySymbolCode={ticker}&securityValidateIndicator=true"
-
 
 def order_preview_page(account_id):
     """

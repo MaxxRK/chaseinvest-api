@@ -102,6 +102,11 @@ class Order:
         for i in range(0, 4):
             self.session.page.goto(order_page(account_id))
             self.session.page.reload()
+            experience = self.session.page.wait_for_selector("span > a > span.link__text")
+            if experience.text_content() == "Switch back to classic trading experience":
+                experience.click()
+                self.session.page.reload()
+                self.session.page.goto(order_page(account_id))
             try:
                 self.session.page.wait_for_selector(
                     "css=label >> text=Buy", timeout=20000

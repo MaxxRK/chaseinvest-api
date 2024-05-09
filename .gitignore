@@ -1,11 +1,10 @@
 #custom
-hometest.py
-testrsa.py
-notheadless.py
 Profile/
 requests/
 account.txt
 *.json
+*.py
+!setup.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

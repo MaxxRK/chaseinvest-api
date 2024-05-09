@@ -3,7 +3,7 @@ from datetime import datetime
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .session import ChaseSession
-from .urls import account_holdings, holdings_json, order_page, quote_endpoint
+from .urls import account_holdings, holdings_json, order_page
 
 
 class SymbolQuote:
@@ -54,15 +54,11 @@ class SymbolQuote:
         self.bid_price: float = 0
         self.bid_exchange_code: str = ""
         self.bid_quantity: int = 0
-        self.change_amount: float = 0
         self.last_trade_price: float = 0
-        self.last_trade_quantity: int = 0
+        self.last_trade_quantity: float = 0
         self.last_exchange_code: str = ""
-        self.change_percentage: float = 0
         self.as_of_time: datetime = None
         self.security_description: str = ""
-        self.security_symbol: str = ""
-        self.raw_json: dict = {}
         self.get_symbol_quote()
 
     def get_symbol_quote(self):
@@ -74,38 +70,50 @@ class SymbolQuote:
         Returns:
             None
         """
-        with self.session.page.expect_request(quote_endpoint(self.symbol)) as first:
+        
+        self.session.page.goto(order_page(self.account_id))
+        experience = self.session.page.wait_for_selector("span > a > span.link__text")
+        if experience.text_content() == "Switch back to classic trading experience":
+            experience.click()
+            self.session.page.reload()
             self.session.page.goto(order_page(self.account_id))
-            self.session.page.wait_for_selector("css=label >> text=Buy")
-            self.session.page.wait_for_selector(
-                "#equitySymbolLookup-block-autocomplete-validate-input-field"
-            )
-            self.session.page.fill(
-                "#equitySymbolLookup-block-autocomplete-validate-input-field",
-                self.symbol,
-            )
-            self.session.page.press(
-                "#equitySymbolLookup-block-autocomplete-validate-input-field", "Enter"
-            )
-            first_request = first.value
-            body = first_request.response().json()
-        self.raw_json = body
-        self.ask_price = float(self.raw_json["askPriceAmount"])
-        self.ask_exchange_code = self.raw_json["askExchangeCode"]
-        self.ask_quantity = int(self.raw_json["askQuantity"])
-        self.bid_price = float(self.raw_json["bidPriceAmount"])
-        self.bid_exchange_code = self.raw_json["bidExchangeCode"]
-        self.bid_quantity = int(self.raw_json["bidQuantity"])
-        self.change_amount = float(self.raw_json["changeAmount"])
-        self.last_trade_price = float(self.raw_json["lastTradePriceAmount"])
-        self.last_trade_quantity = int(self.raw_json["lastTradeQuantity"])
-        self.last_exchange_code = self.raw_json["lastTradeExchangeCode"]
-        self.change_percentage = float(self.raw_json["changePercent"])
-        self.as_of_time = datetime.strptime(
-            self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
+        self.session.page.wait_for_selector("css=label >> text=Buy")
+        self.session.page.wait_for_selector(
+            "#equitySymbolLookup-block-autocomplete-validate-input-field"
         )
-        self.security_description = self.raw_json["securityDescriptionText"]
-        self.security_symbol = self.raw_json["securitySymbolCode"]
+        self.session.page.fill(
+            "#equitySymbolLookup-block-autocomplete-validate-input-field",
+            self.symbol,
+        )
+        self.session.page.press(
+            "#equitySymbolLookup-block-autocomplete-validate-input-field", "Enter"
+        )
+        self.session.page.wait_for_selector("#equityQuoteDetails > section")
+        ask_element = self.session.page.query_selector(
+            "#equityQuoteDetails > section > section > dl > div.askClass.quote-detail-list.col-xs-6.no-padding-right > dd"
+        ).inner_text()
+        ask_string = ask_element.split()
+        bid_element = self.session.page.query_selector(
+            "#equityQuoteDetails > section > section > dl > div.bidClass.quote-detail-list.col-xs-6.no-padding-left > dd"
+        ).inner_text()
+        bid_string = bid_element.split()
+        last_element = self.session.page.query_selector(
+            "#equityQuoteDetails > section > section > dl > div.priceClass.quote-detail-list.list-border.col-xs-6.no-padding-left > dd"
+        ).inner_text()
+        last_string = last_element.split()
+        security_desc = self.session.page.query_selector("#asset-description").inner_text()
+        security_desc_string = security_desc.split('\n', 1)[1].strip()
+        self.ask_price = float(ask_string[0].replace(",", ""))
+        self.ask_exchange_code = ask_string[3].replace("(", "").replace(")", "")
+        self.ask_quantity = int(ask_string[2])
+        self.bid_price = float(bid_string[0].replace(",", ""))
+        self.bid_exchange_code = bid_string[3].replace("(", "").replace(")", "")
+        self.bid_quantity = int(bid_string[2])
+        self.last_trade_price = float(last_string[0].replace(",", ""))
+        self.last_trade_quantity = float(last_string[2].replace(",", ""))
+        self.last_exchange_code = last_string[3].replace("(", "").replace(")", "")
+        self.as_of_time = datetime.now()
+        self.security_description = security_desc_string
 
 
 class SymbolHoldings:
