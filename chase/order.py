@@ -93,9 +93,7 @@ class Order:
         """
 
         self.session.page.goto(order_page(account_id))
-        experience = self.session.page.wait_for_selector(
-                "span > a > span.link__text"
-            )
+        experience = self.session.page.wait_for_selector("span > a > span.link__text")
         if experience.text_content() == "Switch back to classic trading experience":
             experience.click()
             self.session.page.reload()
