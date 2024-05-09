@@ -5,9 +5,9 @@ from chase import order as och
 from chase import session
 from chase import symbols as sym
 
-# create Session
+# create Session Headless does not work at the moment it must be set to false.
 cs = session.ChaseSession(
-    title="Title of your profile here", headless=True, profile_path="your/profile/path"
+    title="Title of your profile here", headless=False, profile_path="your/profile/path"
 )
 
 # Login to Chase.com
