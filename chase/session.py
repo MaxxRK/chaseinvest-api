@@ -116,9 +116,10 @@ class ChaseSession:
             storage_state=self.profile_path if self.title is not None else None,
         )
         if self.debug:
-            self.context.tracing.start(name="chase_trace", screenshots=True, snapshots=True)
+            self.context.tracing.start(
+                name="chase_trace", screenshots=True, snapshots=True
+            )
         self.page = self.context.new_page()
-        
 
     def save_storage_state(self):
         """
@@ -137,7 +138,7 @@ class ChaseSession:
         """Closes the browser."""
         self.save_storage_state()
         if self.debug:
-            self.context.tracing.stop(path='./chase_trace.zip')
+            self.context.tracing.stop(path="./chase_trace.zip")
         self.browser.close()
         self.playwright.stop()
 

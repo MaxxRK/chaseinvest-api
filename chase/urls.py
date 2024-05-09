@@ -56,7 +56,6 @@ def order_page(account_id):
     return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym="
 
 
-
 def order_preview_page(account_id):
     """
     Generates the URL for the order preview page for a specific account.
