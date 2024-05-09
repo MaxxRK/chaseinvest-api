@@ -70,7 +70,7 @@ class SymbolQuote:
         Returns:
             None
         """
-        
+
         self.session.page.goto(order_page(self.account_id))
         experience = self.session.page.wait_for_selector("span > a > span.link__text")
         if experience.text_content() == "Switch back to classic trading experience":
@@ -101,8 +101,10 @@ class SymbolQuote:
             "#equityQuoteDetails > section > section > dl > div.priceClass.quote-detail-list.list-border.col-xs-6.no-padding-left > dd"
         ).inner_text()
         last_string = last_element.split()
-        security_desc = self.session.page.query_selector("#asset-description").inner_text()
-        security_desc_string = security_desc.split('\n', 1)[1].strip()
+        security_desc = self.session.page.query_selector(
+            "#asset-description"
+        ).inner_text()
+        security_desc_string = security_desc.split("\n", 1)[1].strip()
         self.ask_price = float(ask_string[0].replace(",", ""))
         self.ask_exchange_code = ask_string[3].replace("(", "").replace(")", "")
         self.ask_quantity = int(ask_string[2])

@@ -102,7 +102,9 @@ class Order:
         for i in range(0, 4):
             self.session.page.goto(order_page(account_id))
             self.session.page.reload()
-            experience = self.session.page.wait_for_selector("span > a > span.link__text")
+            experience = self.session.page.wait_for_selector(
+                "span > a > span.link__text"
+            )
             if experience.text_content() == "Switch back to classic trading experience":
                 experience.click()
                 self.session.page.reload()
@@ -125,9 +127,9 @@ class Order:
                 order_messages["ORDER INVALID"] = "Order page loaded correctly."
                 break
             except PlaywrightTimeoutError:
-                order_messages[
-                    "ORDER INVALID"
-                ] = f"Order page did not load correctly cannot continue. Tried {i + 1} times."
+                order_messages["ORDER INVALID"] = (
+                    f"Order page did not load correctly cannot continue. Tried {i + 1} times."
+                )
                 print(order_messages["ORDER INVALID"])
 
         if order_messages["ORDER INVALID"] != "Order page loaded correctly.":
@@ -158,9 +160,9 @@ class Order:
             )
             market_btn.click()
             if duration not in ["DAY", "ON_THE_CLOSE"]:
-                order_messages[
-                    "ORDER INVALID"
-                ] = "Market orders must be DAY or ON THE CLOSE."
+                order_messages["ORDER INVALID"] = (
+                    "Market orders must be DAY or ON THE CLOSE."
+                )
                 return order_messages
         elif price_type == "STOP":
             stop_btn = self.session.page.wait_for_selector(
@@ -168,9 +170,9 @@ class Order:
             )
             stop_btn.click()
             if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
-                order_messages[
-                    "ORDER INVALID"
-                ] = "Stop orders must be DAY or GOOD TILL CANCELLED."
+                order_messages["ORDER INVALID"] = (
+                    "Stop orders must be DAY or GOOD TILL CANCELLED."
+                )
                 return order_messages
         elif price_type == "STOP_LIMIT":
             stop_limit_btn = self.session.page.wait_for_selector(
@@ -178,9 +180,9 @@ class Order:
             )
             stop_limit_btn.click()
             if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
-                order_messages[
-                    "ORDER INVALID"
-                ] = "Stop orders must be DAY or GOOD TILL CANCELLED."
+                order_messages["ORDER INVALID"] = (
+                    "Stop orders must be DAY or GOOD TILL CANCELLED."
+                )
                 return order_messages
 
         if price_type in ["LIMIT", "STOP_LIMIT"]:
@@ -296,9 +298,9 @@ class Order:
             order_messages["ORDER CONFIRMATION"] = order_confirmation
             return order_messages
         except PlaywrightTimeoutError:
-            order_messages[
-                "ORDER CONFIRMATION"
-            ] = "No order confirmation page found. Order Failed."
+            order_messages["ORDER CONFIRMATION"] = (
+                "No order confirmation page found. Order Failed."
+            )
             return order_messages
 
     def get_order_statuses(self, account_id):
