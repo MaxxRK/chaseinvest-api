@@ -138,7 +138,9 @@ class ChaseSession:
         """Closes the browser."""
         self.save_storage_state()
         if self.debug:
-            self.context.tracing.stop(path="./chase_trace.zip")
+            self.context.tracing.stop(
+                path=f'./vanguard_trace{self.title if self.title is not None else ""}.zip'
+            )
         self.browser.close()
         self.playwright.stop()
 
