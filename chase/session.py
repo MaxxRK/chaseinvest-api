@@ -7,7 +7,7 @@ from time import sleep
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
-from .urls import login_page, landing_page
+from .urls import landing_page, login_page
 
 
 class ChaseSession:
