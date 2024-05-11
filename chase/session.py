@@ -7,7 +7,7 @@ from time import sleep
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
-from .urls import login_page
+from .urls import login_page, landing_page
 
 
 class ChaseSession:
@@ -187,9 +187,20 @@ class ChaseSession:
                 self.page.wait_for_load_state("load", timeout=30000)
                 return True
             except PlaywrightTimeoutError:
-                if self.title is not None:
-                    self.save_storage_state()
-                return False
+                try:
+                    self.page.wait_for_selector(
+                        "input#input-sec-auth-options-0", timeout=1000
+                    )
+                    sleep(random.uniform(0.1, 1.0))
+                    self.page.click("input#input-sec-auth-options-0")
+                    sleep(random.uniform(0.1, 1.0))
+                    self.page.click('button[type="submit"]')
+                    self.page.wait_for_url(landing_page(), timeout=60000)
+                    return False
+                except PlaywrightTimeoutError:
+                    if self.title is not None:
+                        self.save_storage_state()
+                    return False
         except Exception as e:
             self.close_browser()
             traceback.print_exc()
