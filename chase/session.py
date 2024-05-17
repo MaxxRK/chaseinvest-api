@@ -163,8 +163,8 @@ class ChaseSession:
             self.password = password
             self.page.goto(login_page())
             self.page.wait_for_selector("#signin-button", timeout=30000)
-            username_box = self.page.query_selector("#userId-text-input-field")
-            password_box = self.page.query_selector("#password-text-input-field")
+            username_box = self.page.query_selector("#userId-input")
+            password_box = self.page.query_selector("#password-input")
             username_box.type(username, delay=random.randint(50, 500))
             password_box.type(password, delay=random.randint(50, 500))
             sleep(random.uniform(1, 3))
