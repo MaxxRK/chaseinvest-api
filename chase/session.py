@@ -170,6 +170,12 @@ class ChaseSession:
             sleep(random.uniform(1, 3))
             self.page.click("#signin-button")
             try:
+                select_text = self.page.get_by_label("Get a text. We'll text a one-")
+                select_text.wait_for(timeout=10000)
+                select_text.click()
+            except PlaywrightTimeoutError:
+                pass
+            try:
                 self.page.wait_for_selector(
                     "#header-simplerAuth-dropdownoptions-styledselect", timeout=10000
                 )

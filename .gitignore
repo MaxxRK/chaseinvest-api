@@ -4,6 +4,7 @@ requests/
 account.txt
 *.json
 *.py
+*.zip
 !setup.py
 
 # Byte-compiled / optimized / DLL files
