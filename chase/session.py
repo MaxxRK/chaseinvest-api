@@ -173,6 +173,11 @@ class ChaseSession:
                 select_text = self.page.get_by_label("Get a text. We'll text a one-")
                 select_text.wait_for(timeout=10000)
                 select_text.click()
+                next_btn = self.page.wait_for_selector(
+                    'button[type="submit"]',
+                    timeout=5000
+                )
+                next_btn.click()
             except PlaywrightTimeoutError:
                 pass
             try:
