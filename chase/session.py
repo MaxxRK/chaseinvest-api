@@ -176,6 +176,7 @@ class ChaseSession:
                 next_btn = self.page.get_by_role("button", name="Next")
                 next_btn.wait_for(timeout=10000)
                 next_btn.click()
+                return True
             except PlaywrightTimeoutError:
                 pass
             try:
@@ -230,19 +231,28 @@ class ChaseSession:
         """
         try:
             code = str(code)
-            self.page.fill("#otpcode_input-input-field", code)
-            self.page.fill("#password_input-input-field", self.password)
-            self.page.click('button[type="submit"]')
-            sleep(5)
-            for _ in range(3):
-                try:
-                    self.page.wait_for_selector("#signin-button", timeout=30000)
-                    self.page.reload()
-                    sleep(5)
-                except PlaywrightTimeoutError:
-                    if self.title is not None:
-                        self.save_storage_state()
-                    return True
+            try:
+                code_entry = self.page.get_by_label("Enter your code")
+                code_entry.wait_for(timeout=15000)
+                code_entry.type(code, delay=random.randint(50, 500))
+                self.page.get_by_role("button", name="Next").click()
+                sleep(5)
+            except PlaywrightTimeoutError:
+                pass
+            try:
+                self.page.wait_for_selector(
+                    "#otpcode_input-input-field",
+                    timeout=150000
+                )
+                self.page.fill("#otpcode_input-input-field", code)
+                self.page.fill("#password_input-input-field", self.password)
+                self.page.click('button[type="submit"]')
+                self.page.wait_for_selector("#signin-button", timeout=30000)
+                sleep(5)
+            except PlaywrightTimeoutError:
+                if self.title is not None:
+                    self.save_storage_state()
+                return True
             raise Exception("Failed to login to Chase")
         except Exception as e:
             self.close_browser()
