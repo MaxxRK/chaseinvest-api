@@ -241,8 +241,7 @@ class ChaseSession:
                 pass
             try:
                 self.page.wait_for_selector(
-                    "#otpcode_input-input-field",
-                    timeout=150000
+                    "#otpcode_input-input-field", timeout=150000
                 )
                 self.page.fill("#otpcode_input-input-field", code)
                 self.page.fill("#password_input-input-field", self.password)
