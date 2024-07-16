@@ -173,10 +173,13 @@ class ChaseSession:
                 select_text = self.page.get_by_label("Get a text. We'll text a one-")
                 select_text.wait_for(timeout=10000)
                 select_text.click()
-                radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
-                radio_button.wait_for(timeout=10000)
-                radio_button.wait_for(state="visible")
-                radio_button.check()
+                try:
+                    radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
+                    radio_button.wait_for(timeout=10000)
+                    radio_button.wait_for(state="visible")
+                    radio_button.check()
+                except PlaywrightTimeoutError:
+                    pass
                 next_btn = self.page.get_by_role("button", name="Next")
                 next_btn.wait_for(timeout=10000)
                 next_btn.click()
