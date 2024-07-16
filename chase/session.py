@@ -176,7 +176,7 @@ class ChaseSession:
                 radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
                 radio_button.wait_for(timeout=10000)
                 radio_button.wait_for(state="visible")
-                radio_button.check()          
+                radio_button.check()
                 next_btn = self.page.get_by_role("button", name="Next")
                 next_btn.wait_for(timeout=10000)
                 next_btn.click()
