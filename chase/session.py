@@ -112,7 +112,6 @@ class ChaseSession:
             os.makedirs(os.path.dirname(self.profile_path), exist_ok=True)
             with open(self.profile_path, "w") as f:
                 json.dump({}, f)
-        # Headless mode does not work for chase right now
         if self.headless:
             self.browser = self.playwright.firefox.launch(
                 headless=True,
