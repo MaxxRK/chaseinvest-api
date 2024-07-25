@@ -53,8 +53,7 @@ class ChaseSession:
         self.stealth_config = StealthConfig(
             navigator_languages=False,
             navigator_user_agent=False,
-            navigator_vendor=False,
-            
+            navigator_vendor=False,  
         )
         self.get_browser()
 
@@ -128,7 +127,6 @@ class ChaseSession:
             )
         self.page = self.context.new_page()
         stealth_sync(self.page, self.stealth_config)
-
 
     def save_storage_state(self):
         """
