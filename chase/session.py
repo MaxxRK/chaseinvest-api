@@ -6,7 +6,7 @@ from time import sleep
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync, StealthConfig
+from playwright_stealth import StealthConfig, stealth_sync
 
 from .urls import landing_page, login_page
 
@@ -54,7 +54,6 @@ class ChaseSession:
             navigator_languages=False,
             navigator_user_agent=False,
             navigator_vendor=False,
-            
         )
         self.get_browser()
 
@@ -128,7 +127,6 @@ class ChaseSession:
             )
         self.page = self.context.new_page()
         stealth_sync(self.page, self.stealth_config)
-
 
     def save_storage_state(self):
         """
