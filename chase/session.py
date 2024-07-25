@@ -114,9 +114,15 @@ class ChaseSession:
                 json.dump({}, f)
         # Headless mode does not work for chase right now
         if self.headless:
-            self.browser = self.playwright.firefox.launch(headless=True)
+            self.browser = self.playwright.firefox.launch(
+                headless=True,
+                args=["--disable-webgl", "--disable-software-rasterizer"],
+            )
         else:
-            self.browser = self.playwright.firefox.launch(headless=False)
+            self.browser = self.playwright.firefox.launch(
+                headless=False,
+                args=["--disable-webgl", "--disable-software-rasterizer"],
+            )
         self.context = self.browser.new_context(
             viewport={"width": 1920, "height": 1080},
             storage_state=self.profile_path if self.title is not None else None,
