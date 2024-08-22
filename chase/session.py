@@ -172,15 +172,24 @@ class ChaseSession:
             Exception: If there is an error during the login process in step one.
         """
         try:
-            self.password = password
+            self.password = r"" + password
             self.page.goto(login_page())
             self.page.wait_for_selector("#signin-button", timeout=30000)
             username_box = self.page.query_selector("#userId-input")
             password_box = self.page.query_selector("#password-input")
-            username_box.type(username, delay=random.randint(50, 500))
-            password_box.type(password, delay=random.randint(50, 500))
+            username_box.type(r"" + username, delay=random.randint(50, 500))
+            password_box.type(self.password, delay=random.randint(50, 500))
             sleep(random.uniform(1, 3))
             self.page.click("#signin-button")
+            try:
+                auth_by_app = self.page.get_by_label("We'll send a push notification")
+                auth_by_app.wait_for(timeout=10000)
+                auth_by_app.click()
+                print("Chase is asking for 2fa from the phone app. You have 120sec to approve it.")
+                self.page.wait_for_url(landing_page(), timeout=120000)
+                return False
+            except PlaywrightTimeoutError:
+                pass
             try:
                 select_text = self.page.get_by_label("Get a text. We'll text a one-")
                 select_text.wait_for(timeout=10000)
