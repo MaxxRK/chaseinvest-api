@@ -185,7 +185,9 @@ class ChaseSession:
                 auth_by_app = self.page.get_by_label("We'll send a push notification")
                 auth_by_app.wait_for(timeout=10000)
                 auth_by_app.click()
-                print("Chase is asking for 2fa from the phone app. You have 120sec to approve it.")
+                print(
+                    "Chase is asking for 2fa from the phone app. You have 120sec to approve it."
+                )
                 self.page.wait_for_url(landing_page(), timeout=120000)
                 return False
             except PlaywrightTimeoutError:
