@@ -31,7 +31,7 @@ The code below will:
 - Place a market order for 'INTC' on the first account in the `account_numbers` list
 - Print out the order confirmation
 
-```
+```python
 import sys
 
 from chase import account as acc
