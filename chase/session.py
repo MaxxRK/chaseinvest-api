@@ -188,7 +188,9 @@ class ChaseSession:
                 next_btn = self.page.get_by_role("button", name="Next")
                 next_btn.wait_for(timeout=10000)
                 next_btn.click()
-                print("Chase is asking for 2fa from the phone app. You have 120sec to approve it.")
+                print(
+                    "Chase is asking for 2fa from the phone app. You have 120sec to approve it."
+                )
                 self.page.wait_for_url(landing_page(), timeout=120000)
                 return False
             except PlaywrightTimeoutError:
