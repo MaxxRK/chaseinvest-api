@@ -177,8 +177,8 @@ class ChaseSession:
             self.page.wait_for_selector("#signin-button", timeout=30000)
             username_box = self.page.query_selector("#userId-input")
             password_box = self.page.query_selector("#password-input")
-            username_box.type(r"" + username, delay=random.randint(50, 500))
-            password_box.type(self.password, delay=random.randint(50, 500))
+            username_box.type(r"" + username)
+            password_box.type(self.password)
             sleep(random.uniform(1, 3))
             self.page.click("#signin-button")
             try:
@@ -241,9 +241,19 @@ class ChaseSession:
                     self.page.wait_for_url(landing_page(), timeout=60000)
                     return False
                 except PlaywrightTimeoutError:
-                    if self.title is not None:
-                        self.save_storage_state()
-                    return False
+                    pass
+            try:
+                self.page.get_by_text(
+                    "Skip this step next time,",
+                    exact=False,
+                    timeout=5000
+                ).click()
+                self.page.get_by_text("Save and go to account").click()
+            except PlaywrightTimeoutError:
+                pass
+            if self.title is not None:
+                self.save_storage_state()
+            return False
         except Exception as e:
             self.close_browser()
             traceback.print_exc()
