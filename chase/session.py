@@ -244,8 +244,8 @@ class ChaseSession:
                     pass
             try:
                 self.page.get_by_text(
-                    "Skip this step next time,", exact=False, timeout=5000
-                ).click()
+                    "Skip this step next time,", exact=False
+                ).wait_for(timeout=5000).click()
                 self.page.get_by_text("Save and go to account").click()
             except PlaywrightTimeoutError:
                 pass
