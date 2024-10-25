@@ -156,16 +156,16 @@ class AccountDetails:
         """
         self.all_account_info = all_account.all_account_info
         self.account_id: str = account_id
-        self.nickname: str = None
-        self.mask: str = None
-        self.detail_type: str = None
-        self.account_value: float = None
-        self.account_value_change: float = None
-        self.eda: str = None
-        self.ira: bool = None
-        self.view_balance: bool = None
-        self.prior_year_ira: bool = None
-        self.show_xfer: bool = None
+        self.nickname: str = ""
+        self.mask: str = ""
+        self.detail_type: str = ""
+        self.account_value: float = -1
+        self.account_value_change: float = -1
+        self.eda: str = ""
+        self.ira: bool = False
+        self.view_balance: bool = False
+        self.prior_year_ira: bool = False
+        self.show_xfer: bool = False
         self.get_account_details()
 
     def get_account_details(self):

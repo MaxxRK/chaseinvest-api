@@ -272,7 +272,6 @@ class Order:
             warning = self.session.page.wait_for_selector(
                 "#afterHoursModal > div.markets-message > div", timeout=5000
             )
-            warning_text = warning.text_content()
             order_messages["AFTER HOURS WARNING"] = warning
             if after_hours:
                 try:

@@ -13,6 +13,10 @@ def landing_page():
     return "https://secure.chase.com/web/auth/dashboard#/dashboard/overview"
 
 
+def opt_out_verification_page():
+    return "https://secure05c.chase.com/web/auth/#/logon/recognizeUser/esasiOptout"
+
+
 def account_info():
     return [
         "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list",
