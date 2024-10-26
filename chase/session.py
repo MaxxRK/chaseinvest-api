@@ -187,6 +187,8 @@ class ChaseSession:
                     "Chase is asking for 2fa from the phone app. You have 120sec to approve it."
                 )
                 self.page.wait_for_url(landing_page(), timeout=120000)
+                if self.title is not None:
+                    self.save_storage_state()
                 return False
             except PlaywrightTimeoutError:
                 pass
