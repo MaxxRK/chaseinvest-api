@@ -237,9 +237,9 @@ class ChaseSession:
             try:
                 self.page.wait_for_load_state(state="load", timeout=15000)
                 self.page.wait_for_url(opt_out_verification_page(), timeout=1000)
-                self.page.get_by_text(
-                    "Skip this step next time,", exact=False
-                ).click(timeout=5000)
+                self.page.get_by_text("Skip this step next time,", exact=False).click(
+                    timeout=5000
+                )
                 self.page.get_by_role("button", name="Save and go to account").click()
             except PlaywrightTimeoutError:
                 pass
@@ -277,9 +277,7 @@ class ChaseSession:
             except PlaywrightTimeoutError:
                 pass
             try:
-                self.page.wait_for_selector(
-                    "#otpcode_input-input-field", timeout=15000
-                )
+                self.page.wait_for_selector("#otpcode_input-input-field", timeout=15000)
                 self.page.fill("#otpcode_input-input-field", code)
                 self.page.fill("#password_input-input-field", self.password)
                 self.page.click('button[type="submit"]')
@@ -288,9 +286,9 @@ class ChaseSession:
             try:
                 self.page.wait_for_load_state(state="load", timeout=15000)
                 self.page.wait_for_url(opt_out_verification_page(), timeout=1000)
-                self.page.get_by_text(
-                    "Skip this step next time,", exact=False
-                ).click(timeout=5000)
+                self.page.get_by_text("Skip this step next time,", exact=False).click(
+                    timeout=5000
+                )
                 self.page.get_by_role("button", name="Save and go to account").click()
             except PlaywrightTimeoutError:
                 pass
