@@ -192,7 +192,7 @@ class ChaseSession:
                 pass
             try:
                 select_text = self.page.get_by_label("Get a text. We'll text a one-")
-                select_text.click(timeout=1000)
+                select_text.click(timeout=15000)
                 try:
                     radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
                     radio_button.wait_for(state="visible", timeout=10000)
@@ -270,13 +270,13 @@ class ChaseSession:
                 raise Exception("Timeout loading 2fa page!")
             try:
                 code_entry = self.page.get_by_label("Enter your code")
-                code_entry.type(code, timeout=3000)
+                code_entry.type(code, timeout=15000)
                 self.page.get_by_role("button", name="Next").click()
             except PlaywrightTimeoutError:
                 pass
             try:
                 self.page.wait_for_selector(
-                    "#otpcode_input-input-field", timeout=3000
+                    "#otpcode_input-input-field", timeout=15000
                 )
                 self.page.fill("#otpcode_input-input-field", code)
                 self.page.fill("#password_input-input-field", self.password)
