@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
@@ -57,7 +58,7 @@ class SymbolQuote:
         self.last_trade_price: float = 0
         self.last_trade_quantity: float = 0
         self.last_exchange_code: str = ""
-        self.as_of_time: datetime = None
+        self.as_of_time: Optional[datetime] = None
         self.security_description: str = ""
         self.get_symbol_quote()
 
@@ -151,12 +152,12 @@ class SymbolHoldings:
         """
         self.account_id = account_id
         self.session = session
-        self.as_of_time: datetime = None
-        self.asset_allocation_tool_eligible_indicator: bool = None
+        self.as_of_time: Optional[datetime] = None
+        self.asset_allocation_tool_eligible_indicator: bool = False
         self.cash_sweep_position_summary: dict = {}
-        self.custom_position_allowed_indicator: bool = None
+        self.custom_position_allowed_indicator: bool = False
         self.error_responses: list = []
-        self.performance_allowed_indicator: bool = None
+        self.performance_allowed_indicator: bool = False
         self.positions: list = []
         self.positions_summary: dict = {}
         self.raw_json: dict = {}
