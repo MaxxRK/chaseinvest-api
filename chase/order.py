@@ -127,7 +127,7 @@ class Order:
                 break
             except PlaywrightTimeoutError:
                 order_messages["ORDER INVALID"] = (
-                    f"Order page did not load correctly cannot continue. Tried {i + 1} times."
+                    f"Order page did not load correctly cannot continue. Tried {i + 1} time(s)."
                 )
                 print(order_messages["ORDER INVALID"])
 

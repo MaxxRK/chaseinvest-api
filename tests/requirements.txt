@@ -1,1 +1,2 @@
-playwright
+# playwright stealth from pypi seems abandoned
+-e git+https://github.com/MaxxRK/playwright_stealth.git@f87d7c3d67134ad6def356dce6545c2f42662dfb#egg=playwright_stealth
