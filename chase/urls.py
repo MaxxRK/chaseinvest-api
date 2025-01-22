@@ -19,8 +19,8 @@ def opt_out_verification_page():
 
 def account_info():
     return [
-        "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list",
-        "https://secure09ea.chase.com/svc/rl/accounts/secure/v1/dashboard/data/list",
+        "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list",
+        "https://secure09ea.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list",
     ]
 
 
