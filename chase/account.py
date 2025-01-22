@@ -107,7 +107,9 @@ class AllAccount:
                             info["url"]
                             == "/svc/rr/accounts/secure/overview/investment/v1/list"
                         ):
-                            invest_json = info["response"]["investmentAccountOverviews"][0]
+                            invest_json = info["response"][
+                                "investmentAccountOverviews"
+                            ][0]
                             if request.response().status == 200:
                                 self.total_value = invest_json["totalValue"]
                                 self.total_value_change = invest_json[
