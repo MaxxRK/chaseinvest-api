@@ -1,8 +1,7 @@
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .session import ChaseSession
-from .urls import account_info
-
+from .urls import  account_info_new, account_info
 
 class AllAccount:
     """
@@ -52,7 +51,7 @@ class AllAccount:
             urls = account_info()
             invest_json = self.get_investment_json(urls[0])
             if invest_json is None:
-                invest_json = self.get_investment_json(urls[1])
+                invest_json = self.get_investment_json_new(account_info_new())
         except PlaywrightTimeoutError:
             print("Timed out waiting for page to load")
             invest_json = None
@@ -69,13 +68,19 @@ class AllAccount:
         Returns:
             dict: A dictionary containing the account connectors, or None if the all_account_info attribute is None.
         """
+        account_dict = {}
         if self.all_account_info is None:
             return None
-        account_dict = {}
-        for item in self.all_account_info["investmentAccountDetails"]:
-            account_dict[item["accountId"]] = [item["mask"]]
+        if type(self.all_account_info) is list:
+            for item in self.all_account_info:
+                account_dict[item["accountId"]] = [item["mask"]]
+        else:
+            info = self.all_account_info["investmentAccountDetails"]
+            for item in info:
+                account_dict[item["accountId"]] = [item["mask"]]
+            
         return account_dict
-
+    
     def get_investment_json(self, url):
         """
         Fetches investment data from a given URL.
@@ -96,30 +101,83 @@ class AllAccount:
             dict: The "chaseInvestments" data if the request is successful and the required data is found.
             None: If the request fails after 3 attempts or if the required data is not found in the response.
         """
-        for i in range(3):
-            try:
-                with self.session.page.expect_request(url) as request_context:
-                    self.session.page.reload()
-                    request = request_context.value
-                    body = request.response().json()
-                    for info in body["cache"]:
-                        if (
-                            info["url"]
-                            == "/svc/rr/accounts/secure/overview/investment/v1/list"
-                        ):
-                            invest_json = info["response"][
-                                "investmentAccountOverviews"
-                            ][0]
-                            if request.response().status == 200:
-                                self.total_value = invest_json["totalValue"]
-                                self.total_value_change = invest_json[
-                                    "totalValueChange"
-                                ]
-                                return invest_json
-                    return None
-            except (PlaywrightTimeoutError, RuntimeError):
-                if i == 2:
-                    return None
+        
+        print("Trying to get investment json from old url.")
+        try:
+            with self.session.page.expect_request(url) as request_context:
+                self.session.page.reload()
+                request = request_context.value
+                body = request.response().json()
+                for info in body["cache"]:
+                    if (
+                        info["url"]
+                        == "/svc/rr/accounts/secure/overview/investment/v1/list"
+                    ):
+                        invest_json = info["response"][
+                            "investmentAccountOverviews"
+                        ][0]
+                        if request.response().status == 200:
+                            self.total_value = invest_json["totalValue"]
+                            self.total_value_change = invest_json[
+                                "totalValueChange"
+                            ]
+                            return invest_json
+                return None
+        except (PlaywrightTimeoutError, RuntimeError):
+            return None
+                            
+
+                
+    def get_investment_json_new(self, url):
+        """
+        Fetches investment data from a given URL.
+
+        This method sends a request to the provided URL and expects a JSON response.
+        The response is expected to contain a "cache" key, which is a list of information.
+        It iterates over this list and checks if the "url" key of each item matches a specific string.
+        If a match is found, it extracts the "chaseInvestments" data from the "response" key.
+        If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
+        and returns the "chaseInvestments" data.
+
+        The method retries the request up to 3 times in case of a PlaywrightTimeoutError or RuntimeError.
+
+        Args:
+            url (str): The URL to fetch the investment data from.
+
+        Returns:
+            dict: The "chaseInvestments" data if the request is successful and the required data is found.
+            None: If the request fails after 3 attempts or if the required data is not found in the response.
+        """
+        
+        print("Trying to get investment json from new url.")
+        try:
+            with self.session.page.expect_request(url) as request_context:
+                self.session.page.reload()
+                request = request_context.value
+                body = request.response().json()
+                for info in body["cache"]:
+                    if (
+                        info["url"]
+                        == "/svc/rr/accounts/secure/v4/dashboard/tiles/list"
+                    ):
+                        total_values = info["response"]["investmentTiles"][0][
+                            "tileDetail"
+                        ]
+                        
+                        self.total_value = total_values["accountValue"]
+                        self.total_value_change = total_values[
+                            "accountValueChange"
+                        ]
+                    if (
+                        info["url"]
+                        == "/svc/rl/accounts/secure/v1/user/metadata/list"
+                    ):
+                        invest_json = info["response"]["productInfos"]
+                        return invest_json
+                return None
+        except (PlaywrightTimeoutError, RuntimeError):
+            return None
+            
 
 
 class AccountDetails:
@@ -177,15 +235,22 @@ class AccountDetails:
         Returns:
             None
         """
-        for item in self.all_account_info["investmentAccountDetails"]:
+        if type(self.all_account_info) is list:
+            # If this is used Account balances and quite a few others are not available
+            info = self.all_account_info
+        else:
+            info = self.all_account_info["investmentAccountDetails"]
+        for item in info:
+            if item.get("accountId") is None:
+                item = item[0]
             if item["accountId"] == self.account_id:
-                self.mask = item["mask"]
-                self.nickname = item["nickname"]
-                self.detail_type = item["detailType"]
-                self.account_value = float(item["accountValue"])
-                self.account_value_change = float(item["accountValueChange"])
-                self.eda = bool(item["eda"])
-                self.ira = bool(item["ira"])
-                self.view_balance = bool(item["viewBalance"])
-                self.prior_year_ira = bool(item["priorYearIra"])
-                self.show_xfer = bool(item["showXfer"])
+                self.mask = item.get("mask", "")
+                self.nickname = item.get("nickname", "")
+                self.detail_type = item.get("detailType", "")
+                self.account_value = float(item.get("accountValue", -1))
+                self.account_value_change = float(item.get("accountValueChange", -1))
+                self.eda = bool(item.get("eda", False))
+                self.ira = bool(item.get("ira", False))
+                self.view_balance = bool(item.get("viewBalance", False))
+                self.prior_year_ira = bool(item.get("priorYearIra", False))
+                self.show_xfer = bool(item.get("showXfer", False))

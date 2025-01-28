@@ -194,5 +194,5 @@ class SymbolHoldings:
             self.positions = self.raw_json["positions"]
             self.positions_summary = self.raw_json["positionsSummary"]
             return True
-        except PlaywrightTimeoutError:
+        except (PlaywrightTimeoutError, KeyError):
             return False
