@@ -16,6 +16,7 @@ def landing_page():
 def opt_out_verification_page():
     return "https://secure05c.chase.com/web/auth/#/logon/recognizeUser/esasiOptout"
 
+
 def account_info_new():
     return "https://secure.chase.com/svc/rl/accounts/l4/v1/app/data/list"
 
