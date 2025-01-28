@@ -1,7 +1,8 @@
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .session import ChaseSession
-from .urls import  account_info_new, account_info
+from .urls import account_info, account_info_new
+
 
 class AllAccount:
     """
@@ -78,9 +79,9 @@ class AllAccount:
             info = self.all_account_info["investmentAccountDetails"]
             for item in info:
                 account_dict[item["accountId"]] = [item["mask"]]
-            
+
         return account_dict
-    
+
     def get_investment_json(self, url):
         """
         Fetches investment data from a given URL.
@@ -101,7 +102,7 @@ class AllAccount:
             dict: The "chaseInvestments" data if the request is successful and the required data is found.
             None: If the request fails after 3 attempts or if the required data is not found in the response.
         """
-        
+
         print("Trying to get investment json from old url.")
         try:
             with self.session.page.expect_request(url) as request_context:
@@ -113,21 +114,15 @@ class AllAccount:
                         info["url"]
                         == "/svc/rr/accounts/secure/overview/investment/v1/list"
                     ):
-                        invest_json = info["response"][
-                            "investmentAccountOverviews"
-                        ][0]
+                        invest_json = info["response"]["investmentAccountOverviews"][0]
                         if request.response().status == 200:
                             self.total_value = invest_json["totalValue"]
-                            self.total_value_change = invest_json[
-                                "totalValueChange"
-                            ]
+                            self.total_value_change = invest_json["totalValueChange"]
                             return invest_json
                 return None
         except (PlaywrightTimeoutError, RuntimeError):
             return None
-                            
 
-                
     def get_investment_json_new(self, url):
         """
         Fetches investment data from a given URL.
@@ -148,7 +143,7 @@ class AllAccount:
             dict: The "chaseInvestments" data if the request is successful and the required data is found.
             None: If the request fails after 3 attempts or if the required data is not found in the response.
         """
-        
+
         print("Trying to get investment json from new url.")
         try:
             with self.session.page.expect_request(url) as request_context:
@@ -156,28 +151,19 @@ class AllAccount:
                 request = request_context.value
                 body = request.response().json()
                 for info in body["cache"]:
-                    if (
-                        info["url"]
-                        == "/svc/rr/accounts/secure/v4/dashboard/tiles/list"
-                    ):
+                    if info["url"] == "/svc/rr/accounts/secure/v4/dashboard/tiles/list":
                         total_values = info["response"]["investmentTiles"][0][
                             "tileDetail"
                         ]
-                        
+
                         self.total_value = total_values["accountValue"]
-                        self.total_value_change = total_values[
-                            "accountValueChange"
-                        ]
-                    if (
-                        info["url"]
-                        == "/svc/rl/accounts/secure/v1/user/metadata/list"
-                    ):
+                        self.total_value_change = total_values["accountValueChange"]
+                    if info["url"] == "/svc/rl/accounts/secure/v1/user/metadata/list":
                         invest_json = info["response"]["productInfos"]
                         return invest_json
                 return None
         except (PlaywrightTimeoutError, RuntimeError):
             return None
-            
 
 
 class AccountDetails:
