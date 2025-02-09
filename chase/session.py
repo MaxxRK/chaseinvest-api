@@ -1,15 +1,13 @@
 import json
 import os
-import random
-import sys
 import traceback
-from time import sleep
+import sys
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 from playwright_stealth import StealthConfig, stealth_sync
 
-from .urls import landing_page, login_page
+from .urls import landing_page, login_page, opt_out_verification_page
 
 
 class ChaseSession:
@@ -104,10 +102,9 @@ class ChaseSession:
         """
         # self.profile_path = os.path.abspath(self.profile_path)
         # if self.title is not None:
-        #     print("dont use loco json")
-        #     # self.profile_path = os.path.join(
-        #     #     self.profile_path, f"Chase_{self.title}.json"
-        #     # )
+        #     self.profile_path = os.path.join(
+        #         self.profile_path, f"Chase_{self.title}.json"
+        #     )
         # else:
         #     self.profile_path = os.path.join(self.profile_path, "Chase.json")
         # if not os.path.exists(self.profile_path):
@@ -126,15 +123,13 @@ class ChaseSession:
             )
         self.context = self.browser.new_context(
             viewport={"width": self.width, "height": self.height},
+            # storage_state=self.profile_path if self.title is not None else None,
         )
         if self.debug:
             self.context.tracing.start(
                 name="chase_trace", screenshots=True, snapshots=True
             )
         self.page = self.context.new_page()
-        print(self.width, self.height, self.page.viewport_size)
-        self.page.set_viewport_size({"width": self.width, "height": self.height})
-        print(self.width, self.height, self.page.viewport_size)
         stealth_sync(self.page, self.stealth_config)
 
     def save_storage_state(self):
@@ -147,6 +142,8 @@ class ChaseSession:
             filename (str): The name of the file to save the storage state to.
         """
         storage_state = self.page.context.storage_state()
+        with open(self.profile_path, "w") as f:
+            json.dump(storage_state, f)
 
     def close_browser(self):
         """Closes the browser."""
@@ -191,41 +188,40 @@ class ChaseSession:
             else:
                 print("Terminal closing in 3 sec")
                 sys.exit()
+        # try:
+        #     self.password = r"" + password
+        #     self.page.goto(login_page())
         #     self.page.wait_for_selector("#signin-button", timeout=30000)
         #     username_box = self.page.query_selector("#userId-input")
         #     password_box = self.page.query_selector("#password-input")
-        #     username_box.type(r"" + username, delay=random.randint(50, 500))
-        #     password_box.type(self.password, delay=random.randint(50, 500))
-        #     sleep(random.uniform(1, 3))
-        #     self.page.click("#signin-button")
+        #     username_box.type(r"" + username)
+        #     password_box.type(self.password)
+        #     self.page.click("#signin-button", timeout=1000)
         #     try:
         #         auth_by_app = self.page.get_by_label("We'll send a push notification")
-        #         auth_by_app.wait_for(timeout=10000)
-        #         auth_by_app.click()
+        #         auth_by_app.click(timeout=1000)
         #         next_btn = self.page.get_by_role("button", name="Next")
-        #         next_btn.wait_for(timeout=10000)
-        #         next_btn.click()
+        #         next_btn.click(timeout=10000)
         #         print(
         #             "Chase is asking for 2fa from the phone app. You have 120sec to approve it."
         #         )
         #         self.page.wait_for_url(landing_page(), timeout=120000)
+        #         if self.title is not None:
+        #             self.save_storage_state()
         #         return False
         #     except PlaywrightTimeoutError:
         #         pass
         #     try:
         #         select_text = self.page.get_by_label("Get a text. We'll text a one-")
-        #         select_text.wait_for(timeout=10000)
-        #         select_text.click()
+        #         select_text.click(timeout=15000)
         #         try:
         #             radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
-        #             radio_button.wait_for(timeout=10000)
-        #             radio_button.wait_for(state="visible")
+        #             radio_button.wait_for(state="visible", timeout=10000)
         #             radio_button.check()
         #         except PlaywrightTimeoutError:
         #             pass
         #         next_btn = self.page.get_by_role("button", name="Next")
-        #         next_btn.wait_for(timeout=10000)
-        #         next_btn.click()
+        #         next_btn.click(timeout=10000)
         #         return True
         #     except PlaywrightTimeoutError:
         #         pass
@@ -251,16 +247,24 @@ class ChaseSession:
         #             self.page.wait_for_selector(
         #                 "input#input-sec-auth-options-0", timeout=1000
         #             )
-        #             sleep(random.uniform(0.1, 1.0))
-        #             self.page.click("input#input-sec-auth-options-0")
-        #             sleep(random.uniform(0.1, 1.0))
-        #             self.page.click('button[type="submit"]')
+        #             self.page.click("input#input-sec-auth-options-0", timeout=1000)
+        #             self.page.click('button[type="submit"]', timeout=1000)
         #             self.page.wait_for_url(landing_page(), timeout=60000)
         #             return False
         #         except PlaywrightTimeoutError:
-        #             if self.title is not None:
-        #                 self.save_storage_state()
-        #             return False
+        #             pass
+        #     try:
+        #         self.page.wait_for_load_state(state="load", timeout=15000)
+        #         self.page.wait_for_url(opt_out_verification_page(), timeout=1000)
+        #         self.page.get_by_text("Skip this step next time,", exact=False).click(
+        #             timeout=5000
+        #         )
+        #         self.page.get_by_role("button", name="Save and go to account").click()
+        #     except PlaywrightTimeoutError:
+        #         pass
+        #     if self.title is not None:
+        #         self.save_storage_state()
+        #     return False
         except Exception as e:
             self.close_browser()
             traceback.print_exc()
@@ -282,27 +286,39 @@ class ChaseSession:
         try:
             code = str(code)
             try:
+                self.page.wait_for_load_state(state="networkidle", timeout=15000)
+            except PlaywrightTimeoutError:
+                raise Exception("Timeout loading 2fa page!")
+            try:
                 code_entry = self.page.get_by_label("Enter your code")
-                code_entry.wait_for(timeout=15000)
-                code_entry.type(code, delay=random.randint(50, 500))
+                code_entry.type(code, timeout=15000)
                 self.page.get_by_role("button", name="Next").click()
-                sleep(5)
             except PlaywrightTimeoutError:
                 pass
             try:
-                self.page.wait_for_selector(
-                    "#otpcode_input-input-field", timeout=150000
-                )
+                self.page.wait_for_selector("#otpcode_input-input-field", timeout=15000)
                 self.page.fill("#otpcode_input-input-field", code)
                 self.page.fill("#password_input-input-field", self.password)
                 self.page.click('button[type="submit"]')
-                self.page.wait_for_selector("#signin-button", timeout=30000)
-                sleep(5)
             except PlaywrightTimeoutError:
+                pass
+            try:
+                self.page.wait_for_load_state(state="load", timeout=15000)
+                self.page.wait_for_url(opt_out_verification_page(), timeout=1000)
+                self.page.get_by_text("Skip this step next time,", exact=False).click(
+                    timeout=5000
+                )
+                self.page.get_by_role("button", name="Save and go to account").click()
+            except PlaywrightTimeoutError:
+                pass
+            try:
+                self.page.wait_for_load_state("load", timeout=30000)
+                self.page.wait_for_url(landing_page(), timeout=60000)
                 if self.title is not None:
                     self.save_storage_state()
                 return True
-            raise Exception("Failed to login to Chase")
+            except PlaywrightTimeoutError:
+                raise Exception("Failed to login to Chase")
         except Exception as e:
             self.close_browser()
             traceback.print_exc()

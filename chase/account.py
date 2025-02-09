@@ -72,7 +72,7 @@ class AllAccount:
         if self.all_account_info is None:
             return None
         account_dict = {}
-        for item in self.all_account_info["accounts"]:
+        for item in self.all_account_info["investmentAccountDetails"]:
             account_dict[item["accountId"]] = [item["mask"]]
         return account_dict
 
@@ -105,16 +105,16 @@ class AllAccount:
                     for info in body["cache"]:
                         if (
                             info["url"]
-                            == "/svc/rr/accounts/secure/v1/account/detail/inv/list"
+                            == "/svc/rr/accounts/secure/overview/investment/v1/list"
                         ):
-                            invest_json = info["response"]["chaseInvestments"]
+                            invest_json = info["response"][
+                                "investmentAccountOverviews"
+                            ][0]
                             if request.response().status == 200:
-                                self.total_value = invest_json["investmentSummary"][
-                                    "accountValue"
-                                ]
+                                self.total_value = invest_json["totalValue"]
                                 self.total_value_change = invest_json[
-                                    "investmentSummary"
-                                ]["accountValueChange"]
+                                    "totalValueChange"
+                                ]
                                 return invest_json
                     return None
             except (PlaywrightTimeoutError, RuntimeError):
@@ -156,16 +156,16 @@ class AccountDetails:
         """
         self.all_account_info = all_account.all_account_info
         self.account_id: str = account_id
-        self.nickname: str = None
-        self.mask: str = None
-        self.detail_type: str = None
-        self.account_value: float = None
-        self.account_value_change: float = None
-        self.eda: str = None
-        self.ira: bool = None
-        self.view_balance: bool = None
-        self.prior_year_ira: bool = None
-        self.show_xfer: bool = None
+        self.nickname: str = ""
+        self.mask: str = ""
+        self.detail_type: str = ""
+        self.account_value: float = -1
+        self.account_value_change: float = -1
+        self.eda: str = ""
+        self.ira: bool = False
+        self.view_balance: bool = False
+        self.prior_year_ira: bool = False
+        self.show_xfer: bool = False
         self.get_account_details()
 
     def get_account_details(self):
@@ -177,7 +177,7 @@ class AccountDetails:
         Returns:
             None
         """
-        for item in self.all_account_info["accounts"]:
+        for item in self.all_account_info["investmentAccountDetails"]:
             if item["accountId"] == self.account_id:
                 self.mask = item["mask"]
                 self.nickname = item["nickname"]

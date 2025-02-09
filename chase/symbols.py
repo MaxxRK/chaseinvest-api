@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
@@ -57,7 +58,7 @@ class SymbolQuote:
         self.last_trade_price: float = 0
         self.last_trade_quantity: float = 0
         self.last_exchange_code: str = ""
-        self.as_of_time: datetime = None
+        self.as_of_time: Optional[datetime] = None
         self.security_description: str = ""
         self.get_symbol_quote()
 
@@ -72,6 +73,7 @@ class SymbolQuote:
         """
 
         self.session.page.goto(order_page(self.account_id))
+        self.session.page.reload()
         experience = self.session.page.wait_for_selector("span > a > span.link__text")
         if experience.text_content() == "Switch back to classic trading experience":
             experience.click()
@@ -107,10 +109,10 @@ class SymbolQuote:
         security_desc_string = security_desc.split("\n", 1)[1].strip()
         self.ask_price = float(ask_string[0].replace(",", ""))
         self.ask_exchange_code = ask_string[3].replace("(", "").replace(")", "")
-        self.ask_quantity = int(ask_string[2])
+        self.ask_quantity = int(ask_string[2].replace(",", ""))
         self.bid_price = float(bid_string[0].replace(",", ""))
         self.bid_exchange_code = bid_string[3].replace("(", "").replace(")", "")
-        self.bid_quantity = int(bid_string[2])
+        self.bid_quantity = int(bid_string[2].replace(",", ""))
         self.last_trade_price = float(last_string[0].replace(",", ""))
         self.last_trade_quantity = float(last_string[2].replace(",", ""))
         self.last_exchange_code = last_string[3].replace("(", "").replace(")", "")
@@ -151,12 +153,12 @@ class SymbolHoldings:
         """
         self.account_id = account_id
         self.session = session
-        self.as_of_time: datetime = None
-        self.asset_allocation_tool_eligible_indicator: bool = None
+        self.as_of_time: Optional[datetime] = None
+        self.asset_allocation_tool_eligible_indicator: bool = False
         self.cash_sweep_position_summary: dict = {}
-        self.custom_position_allowed_indicator: bool = None
+        self.custom_position_allowed_indicator: bool = False
         self.error_responses: list = []
-        self.performance_allowed_indicator: bool = None
+        self.performance_allowed_indicator: bool = False
         self.positions: list = []
         self.positions_summary: dict = {}
         self.raw_json: dict = {}
@@ -193,5 +195,5 @@ class SymbolHoldings:
             self.positions = self.raw_json["positions"]
             self.positions_summary = self.raw_json["positionsSummary"]
             return True
-        except PlaywrightTimeoutError:
+        except (PlaywrightTimeoutError, KeyError):
             return False

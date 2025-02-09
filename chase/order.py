@@ -127,7 +127,7 @@ class Order:
                 break
             except PlaywrightTimeoutError:
                 order_messages["ORDER INVALID"] = (
-                    f"Order page did not load correctly cannot continue. Tried {i + 1} times."
+                    f"Order page did not load correctly cannot continue. Tried {i + 1} time(s)."
                 )
                 print(order_messages["ORDER INVALID"])
 
@@ -272,8 +272,7 @@ class Order:
             warning = self.session.page.wait_for_selector(
                 "#afterHoursModal > div.markets-message > div", timeout=5000
             )
-            warning_text = warning.text_content()
-            order_messages["AFTER HOURS WARNING"] = warning
+            order_messages["AFTER HOURS WARNING"] = warning.text_content()
             if after_hours:
                 try:
                     self.session.page.click("#confirmAfterHoursOrder", timeout=2000)
@@ -295,11 +294,15 @@ class Order:
             order_confirmation = order_handle.text_content()
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
+            # self.session.page.reload()
+
             return order_messages
         except PlaywrightTimeoutError:
             order_messages["ORDER CONFIRMATION"] = (
                 "No order confirmation page found. Order Failed."
             )
+            # self.session.page.reload()
+
             return order_messages
 
     def get_order_statuses(self, account_id):
