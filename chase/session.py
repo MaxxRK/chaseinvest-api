@@ -173,45 +173,49 @@ class ChaseSession:
             self.password = r"" + password
             self.page.goto(login_page())
             self.page.wait_for_selector("#signin-button", timeout=30000)
-    
+
             username_box = self.page.query_selector("#userId-input-field-input")
             password_box = self.page.query_selector("#password-input-field-input")
-    
+
             if not username_box or not password_box:
                 raise Exception("Could not find username or password fields.")
-    
+
             username_box.type(r"" + username)
             password_box.type(self.password)
             self.page.click("#signin-button", timeout=5000)
-    
+
             # Wait for navigation to complete after login attempt
             self.page.wait_for_load_state("networkidle", timeout=30000)
-    
+
             # Check if we are on the landing page (successful login without 2FA)
             if self.page.url == landing_page():
                 if self.title is not None:
                     self.save_storage_state()
                 return False  # No 2FA needed
-    
+
             # If not on the landing page, check for 2FA options
             # Use Promise.race to wait for any of the 2FA selectors to appear
-            auth_app_selector = "label:has-text(\"We'll send a push notification\")"
-            auth_text_selector = "label:has-text(\"Get a text. We'll text a one-\")"
-            
+            auth_app_selector = 'label:has-text("We\'ll send a push notification")'
+            auth_text_selector = 'label:has-text("Get a text. We\'ll text a one-")'
+
             try:
                 # Wait for either the app or text 2FA option to be visible
-                self.page.wait_for_selector(f"{auth_app_selector}, {auth_text_selector}", timeout=15000)
-    
+                self.page.wait_for_selector(
+                    f"{auth_app_selector}, {auth_text_selector}", timeout=15000
+                )
+
                 # Now check which one is visible and proceed
                 if self.page.is_visible(auth_app_selector):
                     self.page.click(auth_app_selector)
                     self.page.get_by_role("button", name="Next").click()
-                    print("Chase is asking for 2FA from the phone app. You have 120 seconds to approve it.")
+                    print(
+                        "Chase is asking for 2FA from the phone app. You have 120 seconds to approve it."
+                    )
                     self.page.wait_for_url(landing_page(), timeout=120000)
                     if self.title is not None:
                         self.save_storage_state()
-                    return False # 2FA handled by app
-                
+                    return False  # 2FA handled by app
+
                 elif self.page.is_visible(auth_text_selector):
                     self.page.click(auth_text_selector)
                     try:
@@ -221,14 +225,18 @@ class ChaseSession:
                     except PlaywrightTimeoutError:
                         pass  # Radio button might not be present if there's only one option
                     self.page.get_by_role("button", name="Next").click()
-                    return True # 2FA code will be sent via text
-    
+                    return True  # 2FA code will be sent via text
+
             except PlaywrightTimeoutError:
                 # If neither 2FA option is found, check for other scenarios
                 try:
                     # Fallback for older 2FA UI
-                    self.page.wait_for_selector("#header-simplerAuth-dropdownoptions-styledselect", timeout=5000)
-                    dropdown = self.page.query_selector("#header-simplerAuth-dropdownoptions-styledselect")
+                    self.page.wait_for_selector(
+                        "#header-simplerAuth-dropdownoptions-styledselect", timeout=5000
+                    )
+                    dropdown = self.page.query_selector(
+                        "#header-simplerAuth-dropdownoptions-styledselect"
+                    )
                     dropdown.click()
                     options_ls = self.page.query_selector_all('li[role="presentation"]')
                     for item in options_ls:
@@ -238,23 +246,29 @@ class ChaseSession:
                     self.page.click('button[type="submit"]')
                     return True
                 except PlaywrightTimeoutError:
-                     # Check for "Skip this step next time"
+                    # Check for "Skip this step next time"
                     try:
-                        self.page.wait_for_url(opt_out_verification_page(), timeout=2000)
-                        self.page.get_by_text("Skip this step next time,", exact=False).click(timeout=5000)
-                        self.page.get_by_role("button", name="Save and go to account").click()
+                        self.page.wait_for_url(
+                            opt_out_verification_page(), timeout=2000
+                        )
+                        self.page.get_by_text(
+                            "Skip this step next time,", exact=False
+                        ).click(timeout=5000)
+                        self.page.get_by_role(
+                            "button", name="Save and go to account"
+                        ).click()
                     except PlaywrightTimeoutError:
-                        pass # Not on the opt-out page
-    
+                        pass  # Not on the opt-out page
+
             # Final check to see if we landed on the dashboard
             if self.page.url == landing_page():
                 if self.title is not None:
                     self.save_storage_state()
                 return False
-            
+
             # If we reach here, something unexpected happened
             raise Exception("Login failed due to an unknown page state.")
-    
+
         except Exception as e:
             self.close_browser()
             traceback.print_exc()

@@ -1,4 +1,4 @@
-""" Stores all the urls for the chase website used in this api. """
+"""Stores all the urls for the chase website used in this api."""
 
 
 def login_page():
