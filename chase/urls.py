@@ -45,7 +45,7 @@ def account_holdings(account_id):
 
 
 def holdings_json():
-    return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v1/positions"
+    return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v2/positions"
 
 
 def order_page(account_id):
