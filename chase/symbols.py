@@ -76,8 +76,8 @@ class SymbolQuote:
         # Chase is no longer giving the option to switch from the new trading experience to the classic one.
         # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
 
-        #experience = self.session.page.wait_for_selector("span > a > span.link__text")
-        #if experience.text_content() == "Switch back to classic trading experience":
+        # experience = self.session.page.wait_for_selector("span > a > span.link__text")
+        # if experience.text_content() == "Switch back to classic trading experience":
         #    experience.click()
         #    self.session.page.reload()
         #    self.session.page.goto(order_page(self.account_id))
