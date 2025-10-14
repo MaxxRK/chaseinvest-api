@@ -173,28 +173,28 @@ class ChaseSession:
             self.password = r"" + password
             self.page.goto(login_page())
             self.page.wait_for_selector("#signin-button", timeout=30000)
-    
+
             username_box = self.page.query_selector("#userId-input-field-input")
             password_box = self.page.query_selector("#password-input-field-input")
-    
+
             if not username_box or not password_box:
                 raise Exception("Could not find username or password fields.")
-    
+
             username_box.type(r"" + username)
             password_box.type(self.password)
             self.page.click("#signin-button", timeout=5000)
-    
+
             # Wait for navigation to complete after login attempt
             self.page.wait_for_load_state("networkidle", timeout=30000)
-    
+
             # Check if we are on the landing page (successful login without 2FA)
             if self.page.url == landing_page():
                 if self.title is not None:
                     self.save_storage_state()
                 return False  # No 2FA needed
-    
+
             # If not on the landing page, check for 2FA options
-            
+
             try:
                 self.page.wait_for_selector("#optionsList", timeout=15000)
                 try:
@@ -211,32 +211,39 @@ class ChaseSession:
                                         element.click()
                                         print("Clicked 'Get a text' option")
                                         break
-                                    elif text_content and "push notification" in text_content:
+                                    elif (
+                                        text_content
+                                        and "push notification" in text_content
+                                    ):
                                         element.click()
                                         print("Clicked 'push notification' option")
                                         break
                                 except Exception:
-                                    raise Exception("Could not find any clickable elements in shadow root")          
+                                    raise Exception(
+                                        "Could not find any clickable elements in shadow root"
+                                    )
                         except Exception as e3:
                             print(f"Python shadow DOM search failed: {e3}")
                             raise e3
                     else:
                         raise Exception("No shadow root property accessible")
-                        
+
                 except Exception as e2:
                     print(f"Direct shadow root access failed: {e2}")
-                
+
                 # Wait for the selection to register
                 self.page.wait_for_timeout(1000)
-                
+
                 # Continue with Next button
                 self.page.get_by_role("button", name="Next").click()
-                
+
                 # Handle the 2FA flow based on what was selected
                 try:
                     # Check if we're on a push notification wait screen
                     if self.page.locator("text=approve").is_visible(timeout=2000):
-                        print("Chase is asking for 2FA from the phone app. You have 120 seconds to approve it.")
+                        print(
+                            "Chase is asking for 2FA from the phone app. You have 120 seconds to approve it."
+                        )
                         self.page.wait_for_url(landing_page(), timeout=120000)
                         if self.title is not None:
                             self.save_storage_state()
@@ -244,23 +251,29 @@ class ChaseSession:
                     else:
                         # Assume text message flow
                         try:
-                            radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
+                            radio_button = self.page.get_by_label(
+                                f"xxx-xxx-{last_four}"
+                            )
                             radio_button.wait_for(state="visible", timeout=5000)
                             radio_button.check()
                             self.page.get_by_role("button", name="Next").click()
                         except PlaywrightTimeoutError:
                             pass
                         return True
-                        
+
                 except PlaywrightTimeoutError:
                     return True
-    
+
             except PlaywrightTimeoutError:
                 # If neither 2FA option is found, check for other scenarios
                 try:
                     # Fallback for older 2FA UI
-                    self.page.wait_for_selector("#header-simplerAuth-dropdownoptions-styledselect", timeout=5000)
-                    dropdown = self.page.query_selector("#header-simplerAuth-dropdownoptions-styledselect")
+                    self.page.wait_for_selector(
+                        "#header-simplerAuth-dropdownoptions-styledselect", timeout=5000
+                    )
+                    dropdown = self.page.query_selector(
+                        "#header-simplerAuth-dropdownoptions-styledselect"
+                    )
                     dropdown.click()
                     options_ls = self.page.query_selector_all('li[role="presentation"]')
                     for item in options_ls:
@@ -270,23 +283,29 @@ class ChaseSession:
                     self.page.click('button[type="submit"]')
                     return True
                 except PlaywrightTimeoutError:
-                     # Check for "Skip this step next time"
+                    # Check for "Skip this step next time"
                     try:
-                        self.page.wait_for_url(opt_out_verification_page(), timeout=2000)
-                        self.page.get_by_text("Skip this step next time,", exact=False).click(timeout=5000)
-                        self.page.get_by_role("button", name="Save and go to account").click()
+                        self.page.wait_for_url(
+                            opt_out_verification_page(), timeout=2000
+                        )
+                        self.page.get_by_text(
+                            "Skip this step next time,", exact=False
+                        ).click(timeout=5000)
+                        self.page.get_by_role(
+                            "button", name="Save and go to account"
+                        ).click()
                     except PlaywrightTimeoutError:
-                        pass # Not on the opt-out page
-    
+                        pass  # Not on the opt-out page
+
             # Final check to see if we landed on the dashboard
             if self.page.url == landing_page():
                 if self.title is not None:
                     self.save_storage_state()
                 return False
-            
+
             # If we reach here, something unexpected happened
             raise Exception("Login failed due to an unknown page state.")
-    
+
         except Exception as e:
             self.close_browser()
             traceback.print_exc()
@@ -312,7 +331,7 @@ class ChaseSession:
             except PlaywrightTimeoutError:
                 raise Exception("Timeout loading 2fa page!")
             try:
-                #This returns two elements now need to select the first one
+                # This returns two elements now need to select the first one
                 code_entry = self.page.get_by_label("Enter your code").first
                 code_entry.type(code, timeout=15000)
                 self.page.get_by_role("button", name="Next").click()
