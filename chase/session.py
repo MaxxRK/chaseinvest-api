@@ -194,34 +194,66 @@ class ChaseSession:
                 return False  # No 2FA needed
     
             # If not on the landing page, check for 2FA options
-            # Use Promise.race to wait for any of the 2FA selectors to appear
-            auth_app_selector = "label:has-text(\"We'll send a push notification\")"
-            auth_text_selector = "label:has-text(\"Get a text. We'll text a one-\")"
             
             try:
-                # Wait for either the app or text 2FA option to be visible
-                self.page.wait_for_selector(f"{auth_app_selector}, {auth_text_selector}", timeout=15000)
-    
-                # Now check which one is visible and proceed
-                if self.page.is_visible(auth_app_selector):
-                    self.page.click(auth_app_selector)
-                    self.page.get_by_role("button", name="Next").click()
-                    print("Chase is asking for 2FA from the phone app. You have 120 seconds to approve it.")
-                    self.page.wait_for_url(landing_page(), timeout=120000)
-                    if self.title is not None:
-                        self.save_storage_state()
-                    return False # 2FA handled by app
+                self.page.wait_for_selector("#optionsList", timeout=15000)
+                try:
+                    options_list = self.page.query_selector("#optionsList")
+                    # Login now has a shadw DOM for the 2FA options, so we need to access it
+                    shadow_root = options_list.get_property("shadowRoot")
+                    if shadow_root:
+                        try:
+                            auth_elements = shadow_root.query_selector_all("*")
+                            for element in auth_elements:
+                                try:
+                                    text_content = element.text_content()
+                                    if text_content and "Get a text" in text_content:
+                                        element.click()
+                                        print("Clicked 'Get a text' option")
+                                        break
+                                    elif text_content and "push notification" in text_content:
+                                        element.click()
+                                        print("Clicked 'push notification' option")
+                                        break
+                                except Exception:
+                                    raise Exception("Could not find any clickable elements in shadow root")          
+                        except Exception as e3:
+                            print(f"Python shadow DOM search failed: {e3}")
+                            raise e3
+                    else:
+                        raise Exception("No shadow root property accessible")
+                        
+                except Exception as e2:
+                    print(f"Direct shadow root access failed: {e2}")
                 
-                elif self.page.is_visible(auth_text_selector):
-                    self.page.click(auth_text_selector)
-                    try:
-                        radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
-                        radio_button.wait_for(state="visible", timeout=5000)
-                        radio_button.check()
-                    except PlaywrightTimeoutError:
-                        pass  # Radio button might not be present if there's only one option
-                    self.page.get_by_role("button", name="Next").click()
-                    return True # 2FA code will be sent via text
+                # Wait for the selection to register
+                self.page.wait_for_timeout(1000)
+                
+                # Continue with Next button
+                self.page.get_by_role("button", name="Next").click()
+                
+                # Handle the 2FA flow based on what was selected
+                try:
+                    # Check if we're on a push notification wait screen
+                    if self.page.locator("text=approve").is_visible(timeout=2000):
+                        print("Chase is asking for 2FA from the phone app. You have 120 seconds to approve it.")
+                        self.page.wait_for_url(landing_page(), timeout=120000)
+                        if self.title is not None:
+                            self.save_storage_state()
+                        return False
+                    else:
+                        # Assume text message flow
+                        try:
+                            radio_button = self.page.get_by_label(f"xxx-xxx-{last_four}")
+                            radio_button.wait_for(state="visible", timeout=5000)
+                            radio_button.check()
+                            self.page.get_by_role("button", name="Next").click()
+                        except PlaywrightTimeoutError:
+                            pass
+                        return True
+                        
+                except PlaywrightTimeoutError:
+                    return True
     
             except PlaywrightTimeoutError:
                 # If neither 2FA option is found, check for other scenarios
@@ -280,7 +312,8 @@ class ChaseSession:
             except PlaywrightTimeoutError:
                 raise Exception("Timeout loading 2fa page!")
             try:
-                code_entry = self.page.get_by_label("Enter your code")
+                #This returns two elements now need to select the first one
+                code_entry = self.page.get_by_label("Enter your code").first
                 code_entry.type(code, timeout=15000)
                 self.page.get_by_role("button", name="Next").click()
             except PlaywrightTimeoutError:
