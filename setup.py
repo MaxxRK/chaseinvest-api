@@ -15,7 +15,7 @@ setuptools.setup(
     url="https://github.com/MaxxRK/chaseinvest-api",
     download_url="https://github.com/MaxxRK/chaseinvest-api/archive/refs/tags/v0.3.5.tar.gz",
     keywords=["CHASE", "API"],
-    install_requires=["playwright", "playwright-stealth"],
+    install_requires=["zendriver"],
     packages=["chase"],
     classifiers=[
         "Development Status :: 3 - Alpha",

@@ -1,7 +1,5 @@
 from enum import Enum
 
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-
 from .session import ChaseSession
 from .urls import order_info, order_page, order_status
 
@@ -91,15 +89,38 @@ class Order:
         Returns:
             Order:order_confirmation: Dictionary containing the order confirmation data.
         """
+        return self.session.loop.run_until_complete(
+            self._place_order_async(
+                account_id,
+                quantity,
+                price_type,
+                symbol,
+                duration,
+                order_type,
+                limit_price,
+                stop_price,
+                after_hours,
+                dry_run,
+            )
+        )
 
-        self.session.page.goto(order_page(account_id))
+    async def _place_order_async(
+        self,
+        account_id,
+        quantity: int,
+        price_type: PriceType,
+        symbol,
+        duration: Duration,
+        order_type: OrderSide,
+        limit_price: float = 0.00,
+        stop_price: float = 0.00,
+        after_hours: bool = True,
+        dry_run=True,
+    ):
+        """Async implementation of place_order."""
+        await self.session.page.get(order_page(account_id))
         # Chase is no longer giving the option to switch from the new trading experience to the classic one.
         # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
-
-        # experience = self.session.page.wait_for_selector("span > a > span.link__text")
-        # if experience.text_content() == "Switch back to classic trading experience":
-        # experience.click()
-        # self.session.page.reload()
 
         order_messages = {
             "ORDER INVALID": "",
@@ -108,27 +129,31 @@ class Order:
             "AFTER HOURS WARNING": "",
             "ORDER CONFIRMATION": "",
         }
+        
         for i in range(0, 4):
-            self.session.page.goto(order_page(account_id))
-            self.session.page.reload()
+            await self.session.page.get(order_page(account_id))
+            await self.session.page.reload()
             try:
-                self.session.page.wait_for_selector(
-                    "css=label >> text=Buy", timeout=20000
-                )
-                quote_box = self.session.page.query_selector(
+                await self.session.page.find("css=label >> text=Buy", timeout=20)
+                quote_box = await self.session.page.find(
                     "#equitySymbolLookup-block-autocomplete-validate-input-field"
                 )
-                quote_box.fill("")
-                quote_box.fill(symbol)
-                self.session.page.press(
-                    "#equitySymbolLookup-block-autocomplete-validate-input-field",
-                    "Enter",
-                )
-                self.session.page.wait_for_selector(".NOTE", timeout=10000)
-                self.session.page.wait_for_selector("#element-id", state="hidden")
+                await quote_box.clear_input()
+                await quote_box.send_keys(symbol)
+                await quote_box.send_keys("\n")
+                await self.session.page.find(".NOTE", timeout=10)
+                
+                # Wait for hidden state
+                try:
+                    element = await self.session.page.find("#element-id", timeout=2)
+                    # Wait for it to be hidden
+                    await self.session.page.sleep(1)
+                except:
+                    pass
+                    
                 order_messages["ORDER INVALID"] = "Order page loaded correctly."
                 break
-            except PlaywrightTimeoutError:
+            except Exception:
                 order_messages["ORDER INVALID"] = (
                     f"Order page did not load correctly cannot continue. Tried {i + 1} time(s)."
                 )
@@ -138,49 +163,37 @@ class Order:
             return order_messages
 
         if order_type == "BUY":
-            buy_btn = self.session.page.wait_for_selector("xpath=//label[text()='Buy']")
-            buy_btn.click()
+            buy_btn = await self.session.page.find("xpath=//label[text()='Buy']")
+            await buy_btn.click()
         elif order_type == "SELL":
-            sell_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Sell']"
-            )
-            sell_btn.click()
+            sell_btn = await self.session.page.find("xpath=//label[text()='Sell']")
+            await sell_btn.click()
         elif order_type == "SELL_ALL":
-            sell_all_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Sell All']"
-            )
-            sell_all_btn.click()
+            sell_all_btn = await self.session.page.find("xpath=//label[text()='Sell All']")
+            await sell_all_btn.click()
 
         if price_type == "LIMIT":
-            limit_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Limit']"
-            )
-            limit_btn.click()
+            limit_btn = await self.session.page.find("xpath=//label[text()='Limit']")
+            await limit_btn.click()
         elif price_type == "MARKET":
-            market_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Market']"
-            )
-            market_btn.click()
+            market_btn = await self.session.page.find("xpath=//label[text()='Market']")
+            await market_btn.click()
             if duration not in ["DAY", "ON_THE_CLOSE"]:
                 order_messages["ORDER INVALID"] = (
                     "Market orders must be DAY or ON THE CLOSE."
                 )
                 return order_messages
         elif price_type == "STOP":
-            stop_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Stop']"
-            )
-            stop_btn.click()
+            stop_btn = await self.session.page.find("xpath=//label[text()='Stop']")
+            await stop_btn.click()
             if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
                 order_messages["ORDER INVALID"] = (
                     "Stop orders must be DAY or GOOD TILL CANCELLED."
                 )
                 return order_messages
         elif price_type == "STOP_LIMIT":
-            stop_limit_btn = self.session.page.wait_for_selector(
-                "xpath=//label[text()='Stop Limit']"
-            )
-            stop_limit_btn.click()
+            stop_limit_btn = await self.session.page.find("xpath=//label[text()='Stop Limit']")
+            await stop_limit_btn.click()
             if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
                 order_messages["ORDER INVALID"] = (
                     "Stop orders must be DAY or GOOD TILL CANCELLED."
@@ -188,117 +201,121 @@ class Order:
                 return order_messages
 
         if price_type in ["LIMIT", "STOP_LIMIT"]:
-            self.session.page.fill(
-                "#tradeLimitPrice-text-input-field", str(limit_price)
-            )
+            limit_field = await self.session.page.find("#tradeLimitPrice-text-input-field")
+            await limit_field.send_keys(str(limit_price))
         if price_type in ["STOP", "STOP_LIMIT"]:
-            self.session.page.fill("#tradeStopPrice-text-input-field", str(stop_price))
+            stop_field = await self.session.page.find("#tradeStopPrice-text-input-field")
+            await stop_field.send_keys(str(stop_price))
 
-        quantity_box = self.session.page.wait_for_selector(
-            "#tradeQuantity-text-input-field"
-        )
-        quantity_box.fill("")
-        quantity_box.fill(str(quantity))
+        quantity_box = await self.session.page.find("#tradeQuantity-text-input-field")
+        await quantity_box.clear_input()
+        await quantity_box.send_keys(str(quantity))
 
         if duration == "DAY":
-            self.session.page.click("xpath=//label[text()='Day']")
+            day_btn = await self.session.page.find("xpath=//label[text()='Day']")
+            await day_btn.click()
         elif duration == "GOOD_TILL_CANCELLED":
-            self.session.page.click("xpath=//label[text()='Good 'til canceled']")
+            gtc_btn = await self.session.page.find("xpath=//label[text()='Good 'til canceled']")
+            await gtc_btn.click()
         elif duration == "ON_THE_OPEN":
-            self.session.page.click("xpath=//label[text()='On open']")
+            open_btn = await self.session.page.find("xpath=//label[text()='On open']")
+            await open_btn.click()
         elif duration == "ON_THE_CLOSE":
-            self.session.page.click("xpath=//label[text()='On close']")
+            close_btn = await self.session.page.find("xpath=//label[text()='On close']")
+            await close_btn.click()
         elif duration == "IMMEDIATE_OR_CANCEL":
-            self.session.page.click("#tradeExecutionOptions-iconwrap")
-            self.session.page.click("xpath=//label[text()='Immediate or Cancel']")
+            icon_wrap = await self.session.page.find("#tradeExecutionOptions-iconwrap")
+            await icon_wrap.click()
+            ioc_btn = await self.session.page.find("xpath=//label[text()='Immediate or Cancel']")
+            await ioc_btn.click()
 
         try:
-            self.session.page.wait_for_selector("#previewOrder", timeout=5000)
-            self.session.page.click("#previewOrder")
-        except TimeoutError:
+            preview_btn = await self.session.page.find("#previewOrder", timeout=5)
+            await preview_btn.click()
+        except Exception:
             raise Exception(
                 "No preview button found or it is not interactable. Cannot continue."
             )
 
         try:
-            warning = self.session.page.wait_for_selector(
+            warning = await self.session.page.find(
                 "#entry-trade-wrapper > div > div:nth-child(1) > div > div",
-                timeout=5000,
+                timeout=5,
             )
-            warning_text = warning.text_content()
+            warning_text = await warning.text
             order_messages["ORDER INVALID"] = warning_text
             return order_messages
-        except PlaywrightTimeoutError:
+        except Exception:
             order_messages["ORDER INVALID"] = "No invalid order message found."
 
         try:
-            warning = self.session.page.wait_for_selector(
-                "#equityOverlayContent > div > div", timeout=5000
+            warning = await self.session.page.find(
+                "#equityOverlayContent > div > div", timeout=5
             )
-            warning_handle = warning.query_selector("#previewSoftWarning > ul")
+            warning_handle = await self.session.page.find("#previewSoftWarning > ul", timeout=2)
             if warning_handle is not None:
-                warning_text = warning_handle.text_content()
-                order_messages["WARNING"] = warning
+                warning_text = await warning_handle.text
+                order_messages["WARNING"] = warning_text
                 if self.accept_warning:
                     try:
-                        accept_btn = warning.wait_for_selector(
-                            ".button--primary", timeout=5000
-                        )
-                        accept_btn.click()
-                    except TimeoutError:
+                        accept_btn = await warning.find(".button--primary", timeout=5)
+                        await accept_btn.click()
+                    except Exception:
                         raise Exception(
                             "No accept button found. Could not dismiss prompt."
                         )
                 else:
                     return order_messages
-            order_messages["WARNING"] = "No warning page found."
-        except PlaywrightTimeoutError:
+            else:
+                order_messages["WARNING"] = "No warning page found."
+        except Exception:
             order_messages["WARNING"] = "No warning page found."
 
         try:
-            order_preview = self.session.page.wait_for_selector(
-                ".trade-wrapper", timeout=5000
-            )
-            order_preview_text = order_preview.text_content()
+            order_preview = await self.session.page.find(".trade-wrapper", timeout=5)
+            order_preview_text = await order_preview.text
             order_messages["ORDER PREVIEW"] = order_preview_text
             if not dry_run:
                 try:
-                    self.session.page.click("#submitOrder", timeout=10000)
-                except PlaywrightTimeoutError:
+                    submit_btn = await self.session.page.find("#submitOrder", timeout=10)
+                    await submit_btn.click()
+                except Exception:
                     raise Exception("No place order button found cannot continue.")
             else:
                 return order_messages
-        except PlaywrightTimeoutError:
+        except Exception:
             order_messages["ORDER PREVIEW"] = "No order preview page found."
 
         try:
-            warning = self.session.page.wait_for_selector(
-                "#afterHoursModal > div.markets-message > div", timeout=5000
+            warning = await self.session.page.find(
+                "#afterHoursModal > div.markets-message > div", timeout=5
             )
-            order_messages["AFTER HOURS WARNING"] = warning.text_content()
+            warning_text = await warning.text
+            order_messages["AFTER HOURS WARNING"] = warning_text
             if after_hours:
                 try:
-                    self.session.page.click("#confirmAfterHoursOrder", timeout=2000)
-                except TimeoutError:
+                    confirm_btn = await self.session.page.find("#confirmAfterHoursOrder", timeout=2)
+                    await confirm_btn.click()
+                except Exception:
                     raise Exception("No yes button found. Could not dismiss prompt.")
             else:
                 return order_messages
-        except PlaywrightTimeoutError:
+        except Exception:
             order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
 
         try:
-            order_outside_handle = self.session.page.wait_for_selector(
-                "#equityConfirmation > div", timeout=5000
+            order_outside_handle = await self.session.page.find(
+                "#equityConfirmation > div", timeout=5
             )
-            order_handle = order_outside_handle.query_selector(".alert__title-text")
+            order_handle = await self.session.page.find(".alert__title-text", timeout=2)
             if order_handle is None:
                 order_messages["ORDER CONFIRMATION"] = "Alert Text not found."
                 return order_messages
-            order_confirmation = order_handle.text_content()
+            order_confirmation = await order_handle.text
             order_confirmation = order_confirmation.replace("\n", " ")
             order_messages["ORDER CONFIRMATION"] = order_confirmation
             return order_messages
-        except PlaywrightTimeoutError:
+        except Exception:
             order_messages["ORDER CONFIRMATION"] = (
                 "No order confirmation page found. Order Failed."
             )
@@ -316,14 +333,29 @@ class Order:
             list[dict]: A list of dictionaries, where each dictionary contains 'order_number' and 'status' keys.
 
         Raises:
-            TimeoutException: If the order status page fails to load within the specified timeout.
-            NoSuchElementException: If an expected element on the order status page cannot be found.
+            Exception: If the order status page fails to load or network request cannot be intercepted.
         """
+        return self.session.loop.run_until_complete(
+            self._get_order_statuses_async(account_id)
+        )
+
+    async def _get_order_statuses_async(self, account_id):
+        """Async implementation of get_order_statuses."""
         try:
-            with self.session.page.expect_request(order_info()) as first:
-                self.session.page.goto(order_status(account_id))
-                first_request = first.value
-                body = first_request.response().json()
-            return body
-        except PlaywrightTimeoutError:
+            await self.session.page.get(order_status(account_id))
+            await self.session.page.sleep(2)
+            
+            # Fetch order info using JavaScript
+            url = order_info()
+            response = await self.session.page.evaluate(
+                f"""
+                async () => {{
+                    const response = await fetch('{url}');
+                    return await response.json();
+                }}
+                """
+            )
+            return response
+        except Exception as e:
+            print(f"Error getting order statuses: {e}")
             return None

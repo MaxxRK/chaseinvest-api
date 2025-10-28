@@ -1,5 +1,3 @@
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-
 from .session import ChaseSession
 from .urls import account_info, account_info_new
 
@@ -35,10 +33,12 @@ class AllAccount:
         self.session = session
         self.total_value = None
         self.total_value_change = None
-        self.all_account_info = self.get_all_account_info()
+        self.all_account_info = self.session.loop.run_until_complete(
+            self.get_all_account_info()
+        )
         self.account_connectors = self.get_account_connectors()
 
-    def get_all_account_info(self):
+    async def get_all_account_info(self):
         """
         Retrieves and returns information about all accounts associated with the session.
 
@@ -50,11 +50,11 @@ class AllAccount:
         """
         try:
             urls = account_info()
-            invest_json = self.get_investment_json(urls[0])
+            invest_json = await self.get_investment_json(urls[0])
             if invest_json is None:
-                invest_json = self.get_investment_json_new(account_info_new())
-        except PlaywrightTimeoutError:
-            print("Timed out waiting for page to load")
+                invest_json = await self.get_investment_json_new(account_info_new())
+        except Exception as e:
+            print(f"Timed out waiting for page to load: {e}")
             invest_json = None
 
         return invest_json
@@ -82,7 +82,7 @@ class AllAccount:
 
         return account_dict
 
-    def get_investment_json(self, url):
+    async def get_investment_json(self, url):
         """
         Fetches investment data from a given URL.
 
@@ -93,37 +93,51 @@ class AllAccount:
         If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
         and returns the "chaseInvestments" data.
 
-        The method retries the request up to 3 times in case of a PlaywrightTimeoutError or RuntimeError.
-
         Args:
             url (str): The URL to fetch the investment data from.
 
         Returns:
             dict: The "chaseInvestments" data if the request is successful and the required data is found.
-            None: If the request fails after 3 attempts or if the required data is not found in the response.
+            None: If the request fails or if the required data is not found in the response.
         """
 
         print("Trying to get investment json from old url.")
         try:
-            with self.session.page.expect_request(url) as request_context:
-                self.session.page.reload()
-                request = request_context.value
-                body = request.response().json()
-                for info in body["cache"]:
+            # Reload page and intercept network request
+            await self.session.page.reload()
+            await self.session.page.sleep(3)
+
+            # Get network requests from CDP
+            requests = await self.session.page.execute_cdp_cmd(
+                "Network.getAllCookies", {}
+            )
+
+            # Try to fetch the data directly
+            response = await self.session.page.evaluate(
+                f"""
+                async () => {{
+                    const response = await fetch('{url}');
+                    return await response.json();
+                }}
+                """
+            )
+
+            if response and "cache" in response:
+                for info in response["cache"]:
                     if (
-                        info["url"]
+                        info.get("url")
                         == "/svc/rr/accounts/secure/overview/investment/v1/list"
                     ):
                         invest_json = info["response"]["investmentAccountOverviews"][0]
-                        if request.response().status == 200:
-                            self.total_value = invest_json["totalValue"]
-                            self.total_value_change = invest_json["totalValueChange"]
-                            return invest_json
-                return None
-        except (PlaywrightTimeoutError, RuntimeError):
+                        self.total_value = invest_json["totalValue"]
+                        self.total_value_change = invest_json["totalValueChange"]
+                        return invest_json
+            return None
+        except Exception as e:
+            print(f"Error fetching investment json: {e}")
             return None
 
-    def get_investment_json_new(self, url):
+    async def get_investment_json_new(self, url):
         """
         Fetches investment data from a given URL.
 
@@ -134,35 +148,45 @@ class AllAccount:
         If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
         and returns the "chaseInvestments" data.
 
-        The method retries the request up to 3 times in case of a PlaywrightTimeoutError or RuntimeError.
-
         Args:
             url (str): The URL to fetch the investment data from.
 
         Returns:
             dict: The "chaseInvestments" data if the request is successful and the required data is found.
-            None: If the request fails after 3 attempts or if the required data is not found in the response.
+            None: If the request fails or if the required data is not found in the response.
         """
 
         print("Trying to get investment json from new url.")
         try:
-            with self.session.page.expect_request(url) as request_context:
-                self.session.page.reload()
-                request = request_context.value
-                body = request.response().json()
-                for info in body["cache"]:
-                    if info["url"] == "/svc/rr/accounts/secure/v4/dashboard/tiles/list":
+            # Reload page and fetch data
+            await self.session.page.reload()
+            await self.session.page.sleep(3)
+
+            # Try to fetch the data directly
+            response = await self.session.page.evaluate(
+                f"""
+                async () => {{
+                    const response = await fetch('{url}');
+                    return await response.json();
+                }}
+                """
+            )
+
+            if response and "cache" in response:
+                for info in response["cache"]:
+                    if info.get("url") == "/svc/rr/accounts/secure/v4/dashboard/tiles/list":
                         total_values = info["response"]["investmentTiles"][0][
                             "tileDetail"
                         ]
 
                         self.total_value = total_values["accountValue"]
                         self.total_value_change = total_values["accountValueChange"]
-                    if info["url"] == "/svc/rl/accounts/secure/v1/user/metadata/list":
+                    if info.get("url") == "/svc/rl/accounts/secure/v1/user/metadata/list":
                         invest_json = info["response"]["productInfos"]
                         return invest_json
-                return None
-        except (PlaywrightTimeoutError, RuntimeError):
+            return None
+        except Exception as e:
+            print(f"Error fetching new investment json: {e}")
             return None
 
 

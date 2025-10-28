@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import Optional
 
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-
 from .session import ChaseSession
 from .urls import account_holdings, holdings_json, order_page
 
@@ -60,9 +58,9 @@ class SymbolQuote:
         self.last_exchange_code: str = ""
         self.as_of_time: Optional[datetime] = None
         self.security_description: str = ""
-        self.get_symbol_quote()
+        self.session.loop.run_until_complete(self.get_symbol_quote())
 
-    def get_symbol_quote(self):
+    async def get_symbol_quote(self):
         """
         Retrieves and sets the quote information of the symbol.
 
@@ -72,43 +70,41 @@ class SymbolQuote:
             None
         """
 
-        self.session.page.goto(order_page(self.account_id))
+        await self.session.page.get(order_page(self.account_id))
         # Chase is no longer giving the option to switch from the new trading experience to the classic one.
         # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
 
-        #experience = self.session.page.wait_for_selector("span > a > span.link__text")
-        #if experience.text_content() == "Switch back to classic trading experience":
-        #    experience.click()
-        #    self.session.page.reload()
-        #    self.session.page.goto(order_page(self.account_id))
-        self.session.page.wait_for_selector("css=label >> text=Buy")
-        self.session.page.wait_for_selector(
+        await self.session.page.find("css=label >> text=Buy")
+        symbol_input = await self.session.page.find(
             "#equitySymbolLookup-block-autocomplete-validate-input-field"
         )
-        self.session.page.fill(
-            "#equitySymbolLookup-block-autocomplete-validate-input-field",
-            self.symbol,
-        )
-        self.session.page.press(
-            "#equitySymbolLookup-block-autocomplete-validate-input-field", "Enter"
-        )
-        self.session.page.wait_for_selector("#equityQuoteDetails > section")
-        ask_element = self.session.page.query_selector(
+        await symbol_input.send_keys(self.symbol)
+        await symbol_input.send_keys("\n")
+        
+        await self.session.page.find("#equityQuoteDetails > section")
+        
+        ask_element = await self.session.page.find(
             "#equityQuoteDetails > section > section > dl > div.askClass.quote-detail-list.col-xs-6.no-padding-right > dd"
-        ).inner_text()
-        ask_string = ask_element.split()
-        bid_element = self.session.page.query_selector(
+        )
+        ask_text = await ask_element.text
+        ask_string = ask_text.split()
+        
+        bid_element = await self.session.page.find(
             "#equityQuoteDetails > section > section > dl > div.bidClass.quote-detail-list.col-xs-6.no-padding-left > dd"
-        ).inner_text()
-        bid_string = bid_element.split()
-        last_element = self.session.page.query_selector(
+        )
+        bid_text = await bid_element.text
+        bid_string = bid_text.split()
+        
+        last_element = await self.session.page.find(
             "#equityQuoteDetails > section > section > dl > div.priceClass.quote-detail-list.list-border.col-xs-6.no-padding-left > dd"
-        ).inner_text()
-        last_string = last_element.split()
-        security_desc = self.session.page.query_selector(
-            "#asset-description"
-        ).inner_text()
+        )
+        last_text = await last_element.text
+        last_string = last_text.split()
+        
+        security_desc_element = await self.session.page.find("#asset-description")
+        security_desc = await security_desc_element.text
         security_desc_string = security_desc.split("\n", 1)[1].strip()
+        
         self.ask_price = float(ask_string[0].replace(",", ""))
         self.ask_exchange_code = ask_string[3].replace("(", "").replace(")", "")
         self.ask_quantity = int(ask_string[2].replace(",", ""))
@@ -174,11 +170,25 @@ class SymbolHoldings:
         Returns:
             bool: True if the holdings information was successfully retrieved, False otherwise.
         """
+        return self.session.loop.run_until_complete(self._get_holdings_async())
+
+    async def _get_holdings_async(self):
+        """Async implementation of get_holdings."""
         try:
-            with self.session.page.expect_request(holdings_json()) as first:
-                self.session.page.goto(account_holdings(self.account_id))
-                first_request = first.value
-                body = first_request.response().json()
+            await self.session.page.get(account_holdings(self.account_id))
+            await self.session.page.sleep(2)
+            
+            # Fetch holdings JSON using JavaScript
+            url = holdings_json()
+            body = await self.session.page.evaluate(
+                f"""
+                async () => {{
+                    const response = await fetch('{url}');
+                    return await response.json();
+                }}
+                """
+            )
+            
             self.raw_json = body
             self.as_of_time = datetime.strptime(
                 self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -197,5 +207,6 @@ class SymbolHoldings:
             self.positions = self.raw_json["positions"]
             self.positions_summary = self.raw_json["positionsSummary"]
             return True
-        except (PlaywrightTimeoutError, KeyError):
+        except Exception as e:
+            print(f"Error getting holdings: {e}")
             return False
