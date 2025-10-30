@@ -168,7 +168,15 @@ class ChaseSession:
                     )
                     for element in shadow_elements:
                         print(element)
-                        text = await element.text
+                        try:
+                            attrs = element.attrs
+                            print(f"Element attributes: {attrs}")
+        
+                            text = attrs.get("label") if attrs else None
+                        except Exception as e:
+                            traceback.print_exc()
+                            print(f"Error getting text content: {e}")
+                            
                         print(f"Element text: {text}")
                         if text and ("Get a text" in text or "push notification" in text):
                             await element.click()
