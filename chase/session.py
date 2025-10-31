@@ -167,22 +167,12 @@ class ChaseSession:
                         "#optionsList *", timeout=5
                     )
                     for element in shadow_elements:
-                        print(element)
-                        try:
-                            attrs = element.attrs
-                            print(f"Element attributes: {attrs}")
-        
-                            text = attrs.get("label") if attrs else None
-                        except Exception as e:
-                            traceback.print_exc()
-                            print(f"Error getting text content: {e}")
-                            
-                        print(f"Element text: {text}")
+                        attrs = element.attrs
+                        text = attrs.get("label") if attrs else None
                         if text and ("Get a text" in text or "push notification" in text):
-                            await element.click()
-                            print(f"Clicked 2FA option: {text}")
+                            # Use JavaScript to click instead of element.click()
+                            await element.apply("el => el.click()")
                             break
-
                     await self.page.sleep(1)
                     next_button = await self.page.find("button[name='Next']", timeout=5)
                     await next_button.click()
