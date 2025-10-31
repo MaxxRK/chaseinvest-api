@@ -98,6 +98,8 @@ class ChaseSession:
             browser_args.append("--headless=new")
             browser_args.append("--window-size=1920,1080")
             browser_args.append("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
+        else:
+            browser_args.append("--start-maximized")
         # zendriver has built-in stealth and anti-detection
         self.browser = await uc.start(
             browser_args=browser_args,
@@ -174,11 +176,11 @@ class ChaseSession:
                             await element.apply("el => el.click()")
                             break
                     await self.page.sleep(1)
-                    next_button = await self.page.find("button[name='Next']", timeout=5)
-                    await next_button.click()
 
                     # Check for push notification
+                    input("before first here")
                     try:
+                        print("here")
                         approve_text = await self.page.find("text=approve", timeout=2)
                         if approve_text:
                             print(
@@ -189,22 +191,25 @@ class ChaseSession:
                                 await self.page.sleep(1)
                                 if landing_page() in self.page.url:
                                     return False
-                            raise Exception("Push notification timeout")
-                    except:
-                        # Text message flow
-                        try:
+                    except asyncio.TimeoutError:
+                        # Timed out waiting for push notification moving on to text message flow
+                        pass
+                    try:
+                            input()
+                            #Text message flow
                             radio_label = await self.page.find(
-                                f"[aria-label*='{last_four}']", timeout=5
+                                f"mds-radio-group >> label:has-text('xxx-xxx-{last_four}')", timeout=5
                             )
+                            print(f"Radio label: {radio_label}")
                             await radio_label.click()
                             next_btn = await self.page.find("button[name='Next']", timeout=5)
                             await next_btn.click()
-                        except:
-                            pass
-                        return True
+                    except asyncio.TimeoutError:
+                        #Timed out waiting for text message option moving on to old 2fa flow.
+                        pass
 
-            except:
-                # Fallback for older 2FA UI
+            except asyncio.TimeoutError:
+                # New 2FA options not found, proceed to old 2FA flow
                 try:
                     dropdown = await self.page.find(
                         "#header-simplerAuth-dropdownoptions-styledselect", timeout=5
@@ -219,7 +224,7 @@ class ChaseSession:
                     submit_btn = await self.page.find('button[type="submit"]', timeout=5)
                     await submit_btn.click()
                     return True
-                except:
+                except asyncio.TimeoutError:
                     pass
 
             # Check for opt-out page
