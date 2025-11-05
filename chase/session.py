@@ -197,11 +197,27 @@ class ChaseSession:
                     try:
                             input()
                             #Text message flow
-                            radio_label = await self.page.find(
-                                f"mds-radio-group >> label:has-text('xxx-xxx-{last_four}')", timeout=5
-                            )
-                            print(f"Radio label: {radio_label}")
-                            await radio_label.click()
+                            radio_elements = await self.page.find("mds-radio-group", timeout=15)
+                            print(f"Radio elements: {radio_elements}")
+                            if radio_elements:
+                                #Handle shadow DOM
+                                shadow_elements = await self.page.select_all(
+                                    "mds-radio-group *", timeout=5
+                                )
+                                print(f"Shadow elements: {shadow_elements}")
+                                for element in shadow_elements:
+                                    attrs = element.attrs
+                                    text = attrs.get("label") if attrs else None
+                                    print(f"Element text: {text}")
+                                    if text and f"xxx-xxx-{last_four}" in text:
+                                        #Use JavaScript to click instead of element.click()
+                                        await element.apply("el => el.click()")
+                                        break
+                                #radio_label = await self.page.find(
+                                    #f"mds-radio-group >> label:has-text('xxx-xxx-{last_four}')", timeout=5
+                                #)
+                            #print(f"Radio label: {radio_label}")
+                            #await radio_label.click()
                             next_btn = await self.page.find("button[name='Next']", timeout=5)
                             await next_btn.click()
                     except asyncio.TimeoutError:
