@@ -201,11 +201,7 @@ class ChaseSession:
                             print(f"Radio elements: {radio_elements}")
                             if radio_elements:
                                 #Handle shadow DOM
-                                shadow_elements = await self.page.select_all(
-                                    "mds-radio-group *", timeout=5
-                                )
-                                print(f"Shadow elements: {shadow_elements}")
-                                for element in shadow_elements:
+                                for element in radio_elements:
                                     attrs = element.attrs
                                     text = attrs.get("label") if attrs else None
                                     print(f"Element text: {text}")
