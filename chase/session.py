@@ -178,9 +178,7 @@ class ChaseSession:
                     await self.page.sleep(1)
 
                     # Check for push notification
-                    input("before first here")
                     try:
-                        print("here")
                         approve_text = await self.page.find("text=approve", timeout=2)
                         if approve_text:
                             print(
@@ -195,25 +193,26 @@ class ChaseSession:
                         # Timed out waiting for push notification moving on to text message flow
                         pass
                     try:
-                            input()
-                            #Text message flow
-                            radio_elements = await self.page.find("mds-radio-group", timeout=15)
-                            print(f"Radio elements: {radio_elements}")
-                            if radio_elements:
-                                #Handle shadow DOM
-                                for element in radio_elements:
-                                    attrs = element.attrs
-                                    text = attrs.get("label") if attrs else None
-                                    print(f"Element text: {text}")
-                                    if text and f"xxx-xxx-{last_four}" in text:
-                                        #Use JavaScript to click instead of element.click()
-                                        await element.apply("el => el.click()")
+                        input()
+                        # Text message flow
+                        radio_group = await self.page.find("mds-radio-group", timeout=15)
+                        if radio_group:
+                            attrs = radio_group.attrs
+                            radio_buttons_json = attrs.get("radio-buttons") if attrs else None
+                            
+                            if radio_buttons_json:
+                                import json
+                                radio_buttons = json.loads(radio_buttons_json)
+                                
+                                # Find the index of the button matching last_four
+                                for index, button in enumerate(radio_buttons):
+                                    if f"xxx-xxx-{last_four}" in button.get("label", ""):
+                                        # Set the selected-index attribute using JavaScript
+                                        await radio_group.apply(f"el => el.setAttribute('selected-index', '{index}')")
+                                        await self.page.sleep(0.5)
+                                        print(f"Selected radio button: {button['label']}")
                                         break
-                                #radio_label = await self.page.find(
-                                    #f"mds-radio-group >> label:has-text('xxx-xxx-{last_four}')", timeout=5
-                                #)
-                            #print(f"Radio label: {radio_label}")
-                            #await radio_label.click()
+                            
                             next_btn = await self.page.find("button[name='Next']", timeout=5)
                             await next_btn.click()
                     except asyncio.TimeoutError:
