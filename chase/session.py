@@ -193,13 +193,11 @@ class ChaseSession:
                         # Timed out waiting for push notification moving on to text message flow
                         pass
                     try:
-                        input()
                         # Text message flow
                         radio_group = await self.page.find("mds-radio-group", timeout=15)
                         if radio_group:
                             attrs = radio_group.attrs
                             radio_buttons_json = attrs.get("radio-buttons") if attrs else None
-                            
                             if radio_buttons_json:
                                 import json
                                 radio_buttons = json.loads(radio_buttons_json)
@@ -212,9 +210,13 @@ class ChaseSession:
                                         await self.page.sleep(0.5)
                                         print(f"Selected radio button: {button['label']}")
                                         break
-                            
-                            next_btn = await self.page.find("button[name='Next']", timeout=5)
-                            await next_btn.click()
+                            input("Phone number selected. Press Enter to continue...")#next-content
+                            next_shdw = await self.page.find("#next-content", timeout=5)
+                            if next_shdw:
+                                attr = next_shdw.attrs
+                                print(f"Next button attrs: {attr}")
+                            input("Should have gotten some attributes")
+                            #await next_btn.click()
                     except asyncio.TimeoutError:
                         #Timed out waiting for text message option moving on to old 2fa flow.
                         pass
