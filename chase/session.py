@@ -206,17 +206,18 @@ class ChaseSession:
                                 for index, button in enumerate(radio_buttons):
                                     if f"xxx-xxx-{last_four}" in button.get("label", ""):
                                         # Set the selected-index attribute using JavaScript
-                                        await radio_group.apply(f"el => el.setAttribute('selected-index', '{index}')")
+                                        await radio_group.apply(f"""
+                                            el => {{
+                                                el.setAttribute('selected-index', '{index}');
+                                                el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                                            }}
+                                        """)
                                         await self.page.sleep(0.5)
                                         print(f"Selected radio button: {button['label']}")
                                         break
-                            input("Phone number selected. Press Enter to continue...")#next-content
-                            next_shdw = await self.page.find("#next-content", timeout=5)
-                            if next_shdw:
-                                attr = next_shdw.attrs
-                                print(f"Next button attrs: {attr}")
-                            input("Should have gotten some attributes")
-                            #await next_btn.click()
+                            next_btn = await self.page.find("#next-content", timeout=5)
+                            await next_btn.click()
+                            return False  # 2FA code will be needed
                     except asyncio.TimeoutError:
                         #Timed out waiting for text message option moving on to old 2fa flow.
                         pass
