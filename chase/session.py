@@ -1,7 +1,8 @@
-import json
-import os
-import traceback
 import asyncio
+import json
+import traceback
+import types
+from pathlib import Path
 
 import zendriver as uc
 
@@ -9,8 +10,7 @@ from .urls import landing_page, login_page, opt_out_verification_page
 
 
 class ChaseSession:
-    """
-    A class to manage a session with Chase.
+    """A class to manage a session with Chase.
 
     This class provides methods to initialize a browser with the necessary options, log into Chase, and perform other actions on the Chase website.
 
@@ -26,17 +26,18 @@ class ChaseSession:
         login_two(code): Logs into Chase with the provided two-factor authentication code.
         save_storage_state(): Saves the storage state of the browser to a file.
         close_browser(): Closes the browser.
+
     """
 
-    def __init__(self, headless=True, title=None, profile_path=".", debug=False):
-        """
-        Initializes a new instance of the ChaseSession class.
+    def __init__(self, *, headless: bool = True, title: str | None = None, profile_path: str = ".", debug: bool = False) -> None:
+        """Initialize a new instance of the ChaseSession class.
 
         Args:
             title (string): Denotes the name of the profile and if populated will make the session persistent.
             headless (bool, optional): Whether the browser should run in headless mode. Defaults to True.
             profile_path (str, optional): The path to the user profile directory for the browser. Defaults to None.
             debug (bool, optional): Enable debug mode. Defaults to False.
+
         """
         self.headless: bool = headless
         self.title: str = title
@@ -49,80 +50,64 @@ class ChaseSession:
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.get_browser())
 
-    def __enter__(self):
-        """
-        Enter the runtime context related to this object.
+    def __enter__(self) -> "ChaseSession":
+        """Enter the runtime context related to this object.
 
         Returns:
             self: Returns the instance of the class.
-        """
-        return self
 
-    def __exit__(self, exc_type, exc_value, tb):
         """
-        Exit the runtime context related to this object.
+
+    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, tb: types.TracebackType | None) -> None:
+        """Exit the runtime context related to this object.
 
         Args:
             exc_type (Type[BaseException]): The type of the exception.
             exc_value (BaseException): The instance of the exception.
             tb (TracebackType): A traceback object encapsulating the call stack.
+
         """
         if exc_type is not None:
             print("An error occurred in the context manager:")
             traceback.print_exception(exc_type, exc_value, tb)
         self.loop.run_until_complete(self.close_browser())
         self.loop.close()
+        self.loop.run_until_complete(self.close_browser())
+        self.loop.close()
 
-    async def get_browser(self):
-        """
-        Initializes and returns a browser instance using zendriver.
+    async def get_browser(self) -> None:
+        """Initialize a browser instance using zendriver."""
+        profile = Path(self.profile_path).resolve() / "ZenChase"
+        profile /= f"Chase_{self.title}.json" if self.title is not None else "Chase.json"
 
-        Returns:
-            None
-        """
-        self.profile_path = os.path.join(os.path.abspath(self.profile_path), "ZenChase")
-        if self.title is not None:
-            self.profile_path = os.path.join(
-                self.profile_path, f"Chase_{self.title}.json"
-            )
-        else:
-            self.profile_path = os.path.join(self.profile_path, "Chase.json")
-        
-        if not os.path.exists(self.profile_path):
-            os.makedirs(os.path.dirname(self.profile_path), exist_ok=True)
-            with open(self.profile_path, "w") as f:
-                json.dump({}, f)
+        # keep self.profile_path as a string for backward compatibility with other code
+        self.profile_path = str(profile)
+
+        if not profile.exists():
+            profile.parent.mkdir(parents=True, exist_ok=True)
+            profile.write_text(json.dumps({}))
 
         browser_args = []
         if self.headless:
-            browser_args.append("--headless=new")
-            browser_args.append("--window-size=1920,1080")
-            browser_args.append("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
+            browser_args.extend("--headless=new")
+            browser_args.extend("--window-size=1920,1080")
+            browser_args.extend("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
         else:
             browser_args.append("--start-maximized")
         # zendriver has built-in stealth and anti-detection
         self.browser = await uc.start(
             browser_args=browser_args,
-            user_data_dir=os.path.dirname(self.profile_path) if self.title else None,
+            user_data_dir=str(profile.parent) if self.title else None,
         )
         self.page = await self.browser.get()
 
-    def save_storage_state(self):
-        """
-        Saves the storage state of the browser to a file.
-        """
-        # Note: zendriver uses user_data_dir for persistence
-        # Additional state can be saved if needed
-        pass
-
-    async def close_browser(self):
-        """Closes the browser."""
+    async def close_browser(self) -> None:
+        """Close the browser."""
         if self.browser:
             await self.browser.stop()
 
-    def login(self, username, password, last_four):
-        """
-        Logs into the website with the provided username and password.
+    def login(self, username: str, password: str, last_four: int) -> bool:
+        """Log into the website with the provided username and password.
 
         Args:
             username (str): The user's username.
@@ -131,12 +116,13 @@ class ChaseSession:
 
         Returns:
             bool: True if 2FA is required, False otherwise.
+
         """
         return self.loop.run_until_complete(
             self._login_async(username, password, last_four)
         )
 
-    async def _login_async(self, username, password, last_four):
+    async def _login_async(self, username: str, password: str, last_four: int) -> bool:
         """Async implementation of login."""
         try:
             self.password = r"" + password
@@ -217,7 +203,7 @@ class ChaseSession:
                                         break
                             next_btn = await self.page.find("#next-content", timeout=5)
                             await next_btn.click()
-                            return False  # 2FA code will be needed
+                            return True  # 2FA code will be needed
                     except asyncio.TimeoutError:
                         #Timed out waiting for text message option moving on to old 2fa flow.
                         pass
@@ -243,9 +229,11 @@ class ChaseSession:
 
             # Check for opt-out page
             if opt_out_verification_page() in self.page.url:
-                skip_btn = await self.page.find("text=Skip this step next time", timeout=5)
+                # Trying to verify with xpath. This is untested in zendriver.
+                skip_btn = await self.page.find("//button[contains(., 'Skip this step next time')]", timeout=5)
                 await skip_btn.click()
-                save_btn = await self.page.find("button[name='Save and go to account']", timeout=5)
+
+                save_btn = await self.page.find("//button[contains(., 'Save and go to account')]", timeout=5)
                 await save_btn.click()
 
             # Final check
@@ -259,51 +247,63 @@ class ChaseSession:
             traceback.print_exc()
             raise Exception(f"Error in first step of login into Chase: {e}")
 
-    def login_two(self, code):
-        """
-        Performs the second step of login if 2FA needed.
+    def login_two(self, code: str) -> bool:
+        """Perform the second step of login if 2FA needed.
 
         Args:
             code (str): 2FA code sent to users phone.
 
         Returns:
             bool: True if login is successful, False otherwise.
+
         """
         return self.loop.run_until_complete(self._login_two_async(code))
 
-    async def _login_two_async(self, code):
-        """Async implementation of login_two."""
+    async def _login_two_async(self, code: str) -> bool:
+        """Async perform the second step of login if 2FA needed.
+
+        Returns:
+            bool: True if login is successful, False otherwise.
+
+        Raises:
+            Exception: If an unexpected error occurs during the login process.
+
+        """
         try:
             code = str(code)
             await self.page.sleep(2)
 
             try:
-                code_entries = await self.page.query_selector_all("[aria-label='Enter your code']")
-                if code_entries:
-                    await code_entries[0].send_keys(code)
-                    next_btn = await self.page.find("button[name='Next']", timeout=15)
+                code_entry = await self.page.find("#otpInput", timeout=15)
+                if code_entry:
+                    await code_entry.send_keys(code)
+                    next_btn = await self.page.find("#next-content", timeout=5)
                     await next_btn.click()
-            except:
+            except asyncio.TimeoutError:
                 pass
 
             try:
+                # This is an old 2fa login flow untested in zendriver and probably obsolete
                 otp_field = await self.page.find("#otpcode_input-input-field", timeout=15)
                 await otp_field.send_keys(code)
                 pwd_field = await self.page.find("#password_input-input-field", timeout=5)
                 await pwd_field.send_keys(self.password)
                 submit_btn = await self.page.find('button[type="submit"]', timeout=5)
                 await submit_btn.click()
-            except:
+            except asyncio.TimeoutError:
                 pass
 
             try:
                 await self.page.sleep(2)
+                # Check for opt-out page
                 if opt_out_verification_page() in self.page.url:
-                    skip_btn = await self.page.find("text=Skip this step next time", timeout=5)
+                    # Trying to verify with xpath. This is untested in zendriver.
+                    skip_btn = await self.page.find("//button[contains(., 'Skip this step next time')]", timeout=5)
                     await skip_btn.click()
-                    save_btn = await self.page.find("button[name='Save and go to account']", timeout=5)
+
+                    save_btn = await self.page.find("//button[contains(., 'Save and go to account')]", timeout=5)
                     await save_btn.click()
-            except:
+            except asyncio.TimeoutError:
                 pass
 
             # Wait for landing page
