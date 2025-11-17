@@ -1,10 +1,12 @@
+import asyncio
+import json
+
 from .session import ChaseSession
-from .urls import account_info, account_info_new
+from .urls import account_info
 
 
 class AllAccount:
-    """
-    A class to manage all accounts associated with a ChaseSession.
+    """A class to manage all accounts associated with a ChaseSession.
 
     This class provides methods to retrieve and manage information about all accounts associated with a given session.
 
@@ -18,56 +20,55 @@ class AllAccount:
     Methods:
         get_all_account_info(): Retrieves information about all accounts associated with the session.
         get_account_connectors(): Retrieves connectors for all accounts associated with the session.
+
     """
 
-    def __init__(self, session: ChaseSession):
-        """
-        Initializes an AllAccount object with a given ChaseSession.
+    def __init__(self, session: ChaseSession) -> None:
+        """Initialize the AllAccount object with the given ChaseSession.
 
         This method initializes an AllAccount object, sets the session attribute to the given ChaseSession,
         and retrieves the account information and connectors for all accounts associated with the session.
 
         Args:
             session (ChaseSession): The session associated with the accounts.
+
         """
         self.session = session
         self.total_value = None
         self.total_value_change = None
         self.all_account_info = self.session.loop.run_until_complete(
-            self.get_all_account_info()
+            self.get_all_account_info(),
         )
         self.account_connectors = self.get_account_connectors()
 
-    async def get_all_account_info(self):
-        """
-        Retrieves and returns information about all accounts associated with the session.
+    async def get_all_account_info(self) -> dict | None:
+        """Retrieve and return information about all accounts associated with the session.
 
         This method navigates to the landing page, waits for the account information to load,
         and then retrieves the account information from the page.
 
         Returns:
             dict: A dictionary containing the account information, or None if the information could not be retrieved.
+
         """
         try:
             urls = account_info()
             invest_json = await self.get_investment_json(urls[0])
-            if invest_json is None:
-                invest_json = await self.get_investment_json_new(account_info_new())
         except Exception as e:
             print(f"Timed out waiting for page to load: {e}")
             invest_json = None
 
         return invest_json
 
-    def get_account_connectors(self):
-        """
-        Retrieves and returns connectors for all accounts associated with the session.
+    def get_account_connectors(self) -> dict | None:
+        """Retrieve and return connectors for all accounts associated with the session.
 
         This method iterates over all accounts in the all_account_info attribute and creates a dictionary
         where the keys are account IDs and the values are lists containing the corresponding account masks.
 
         Returns:
             dict: A dictionary containing the account connectors, or None if the all_account_info attribute is None.
+
         """
         account_dict = {}
         if self.all_account_info is None:
@@ -82,9 +83,53 @@ class AllAccount:
 
         return account_dict
 
-    async def get_investment_json(self, url):
+    async def get_investment_json(self, url: str) -> dict | None:
+        """Fetch investment data from a given URL using zendriver.
+
+        Args:
+            url (str): The URL to fetch the investment data from.
+
+        Returns:
+            dict: The investment account overview data if successful.
+            None: If the request fails or data is not found.
+
         """
-        Fetches investment data from a given URL.
+        print("Trying to get investment json from network events (zendriver).")
+        result = {}
+        event = asyncio.Event()
+
+        def on_response(evt):
+            # evt['response']['url'] for CDP, evt['url'] for some wrappers
+            response_url = evt.get('response', {}).get('url') or evt.get('url')
+            if response_url and response_url.startswith(url):
+                result['requestId'] = evt.get('requestId')
+                event.set()
+
+        # Attach network event listener
+        self.session.page.cdp.Network.responseReceived(on_response)
+        await self.session.page.reload()  # or navigate as needed
+        try:
+            await asyncio.wait_for(event.wait(), timeout=10)
+        except asyncio.TimeoutError:
+            print("Timed out waiting for network response.")
+            return None
+
+        if 'requestId' in result:
+            body = await self.session.page.cdp.Network.getResponseBody(requestId=result['requestId'])
+            try:
+                data = json.loads(body['body'])
+            except Exception as e:
+                print(f"Error parsing response body: {e}")
+                return None
+            for info in data.get("cache", []):
+                if info.get("url") == "/svc/rr/accounts/secure/overview/investment/v1/list":
+                    invest_json = info["response"]["investmentAccountOverviews"][0]
+                    self.total_value = invest_json["totalValue"]
+                    self.total_value_change = invest_json["totalValueChange"]
+                    return invest_json
+        return None
+    '''async def get_investment_json(self, url: str) -> dict | None:
+        """Fetch investment data from a given URL.
 
         This method sends a request to the provided URL and expects a JSON response.
         The response is expected to contain a "cache" key, which is a list of information.
@@ -99,100 +144,34 @@ class AllAccount:
         Returns:
             dict: The "chaseInvestments" data if the request is successful and the required data is found.
             None: If the request fails or if the required data is not found in the response.
+
         """
-
-        print("Trying to get investment json from old url.")
         try:
-            # Reload page and intercept network request
-            await self.session.page.reload()
-            await self.session.page.sleep(3)
-
-            # Get network requests from CDP
-            requests = await self.session.page.execute_cdp_cmd(
-                "Network.getAllCookies", {}
-            )
-
-            # Try to fetch the data directly
-            response = await self.session.page.evaluate(
-                f"""
-                async () => {{
-                    const response = await fetch('{url}');
-                    return await response.json();
-                }}
-                """
-            )
-
-            if response and "cache" in response:
-                for info in response["cache"]:
+            with self.session.page.expect_response(url) as request_excpectation:
+                # Reload page and intercept network request
+                await self.session.page.reload()
+                await self.session.page.sleep(3)
+                request = await request_excpectation.value
+                body = request.response().json()
+                for info in body["cache"]:
                     if (
-                        info.get("url")
+                        info["url"]
                         == "/svc/rr/accounts/secure/overview/investment/v1/list"
                     ):
                         invest_json = info["response"]["investmentAccountOverviews"][0]
-                        self.total_value = invest_json["totalValue"]
-                        self.total_value_change = invest_json["totalValueChange"]
-                        return invest_json
-            return None
+                        if request.response().status == 200:
+                            self.total_value = invest_json["totalValue"]
+                            self.total_value_change = invest_json["totalValueChange"]
+                            return invest_json
+                return None
         except Exception as e:
             print(f"Error fetching investment json: {e}")
             return None
-
-    async def get_investment_json_new(self, url):
-        """
-        Fetches investment data from a given URL.
-
-        This method sends a request to the provided URL and expects a JSON response.
-        The response is expected to contain a "cache" key, which is a list of information.
-        It iterates over this list and checks if the "url" key of each item matches a specific string.
-        If a match is found, it extracts the "chaseInvestments" data from the "response" key.
-        If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
-        and returns the "chaseInvestments" data.
-
-        Args:
-            url (str): The URL to fetch the investment data from.
-
-        Returns:
-            dict: The "chaseInvestments" data if the request is successful and the required data is found.
-            None: If the request fails or if the required data is not found in the response.
-        """
-
-        print("Trying to get investment json from new url.")
-        try:
-            # Reload page and fetch data
-            await self.session.page.reload()
-            await self.session.page.sleep(3)
-
-            # Try to fetch the data directly
-            response = await self.session.page.evaluate(
-                f"""
-                async () => {{
-                    const response = await fetch('{url}');
-                    return await response.json();
-                }}
-                """
-            )
-
-            if response and "cache" in response:
-                for info in response["cache"]:
-                    if info.get("url") == "/svc/rr/accounts/secure/v4/dashboard/tiles/list":
-                        total_values = info["response"]["investmentTiles"][0][
-                            "tileDetail"
-                        ]
-
-                        self.total_value = total_values["accountValue"]
-                        self.total_value_change = total_values["accountValueChange"]
-                    if info.get("url") == "/svc/rl/accounts/secure/v1/user/metadata/list":
-                        invest_json = info["response"]["productInfos"]
-                        return invest_json
-            return None
-        except Exception as e:
-            print(f"Error fetching new investment json: {e}")
-            return None
+'''
 
 
 class AccountDetails:
-    """
-    A class to manage the details of a specific account associated with a ChaseSession.
+    """A class to manage the details of a specific account associated with a ChaseSession.
 
     This class provides methods to retrieve and manage information about a specific account associated with a given session.
 
@@ -212,15 +191,16 @@ class AccountDetails:
 
     Methods:
         get_account_details(): Retrieves and sets the details of the account.
+
     """
 
-    def __init__(self, account_id, all_account: AllAccount):
-        """
-        Initializes an AccountDetails object with a given account ID and AllAccount object.
+    def __init__(self, account_id: str, all_account: AllAccount) -> None:
+        """Initialize an AccountDetails object with a given account ID and AllAccount object.
 
         Args:
             account_id (str): The ID of the account.
             all_account (AllAccount): The AllAccount object associated with the session.
+
         """
         self.all_account_info = all_account.all_account_info
         self.account_id: str = account_id
@@ -236,20 +216,13 @@ class AccountDetails:
         self.show_xfer: bool = False
         self.get_account_details()
 
-    def get_account_details(self):
-        """
-        Retrieves and sets the details of the account.
+    def get_account_details(self) -> None:
+        """Retrieve and set the details of the account.
 
         This method iterates over all accounts in the all_account_info attribute and sets the attributes of the AccountDetails object to the details of the account with the matching account ID.
 
-        Returns:
-            None
         """
-        if type(self.all_account_info) is list:
-            # If this is used Account balances and quite a few others are not available
-            info = self.all_account_info
-        else:
-            info = self.all_account_info["investmentAccountDetails"]
+        info = self.all_account_info if type(self.all_account_info) is list else self.all_account_info["investmentAccountDetails"]
         for item in info:
             if item.get("accountId") is None:
                 item = item[0]

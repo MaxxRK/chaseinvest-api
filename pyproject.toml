@@ -4,10 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["zendriver"]
+dependencies = ["zendriver", "anyio"]
 
 [tool.ruff]
 target-version = "py312"
 extend = "./styles/ruff.toml"
 include = ["src/*"]
 exclude = ["src/vendors/*", "guides/*"]
+ignore = ["PLR1702", "PLR0915", "PLR0914","PLR0912", "C901"]

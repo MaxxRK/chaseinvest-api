@@ -2,8 +2,8 @@ import asyncio
 import json
 import traceback
 import types
-from pathlib import Path
 
+import anyio
 import zendriver as uc
 
 from .urls import landing_page, login_page, opt_out_verification_page
@@ -77,15 +77,13 @@ class ChaseSession:
 
     async def get_browser(self) -> None:
         """Initialize a browser instance using zendriver."""
-        profile = Path(self.profile_path).resolve() / "ZenChase"
-        profile /= f"Chase_{self.title}.json" if self.title is not None else "Chase.json"
+        profile = await anyio.Path(self.profile_path).resolve() / "ZenChase"
 
         # keep self.profile_path as a string for backward compatibility with other code
         self.profile_path = str(profile)
 
-        if not profile.exists():
+        if not await profile.exists():
             profile.parent.mkdir(parents=True, exist_ok=True)
-            profile.write_text(json.dumps({}))
 
         browser_args = []
         if self.headless:
@@ -97,12 +95,16 @@ class ChaseSession:
         # zendriver has built-in stealth and anti-detection
         self.browser = await uc.start(
             browser_args=browser_args,
-            user_data_dir=str(profile.parent) if self.title else None,
+            user_data_dir=str(self.profile_path) if self.title else None,
         )
         self.page = await self.browser.get()
 
-    async def close_browser(self) -> None:
+    def close_browser(self) -> None:
         """Close the browser."""
+        return self.loop.run_until_complete(self._close_browser_async())
+
+    async def _close_browser_async(self) -> None:
+        """Async implementation of close browser."""
         if self.browser:
             await self.browser.stop()
 
@@ -123,7 +125,20 @@ class ChaseSession:
         )
 
     async def _login_async(self, username: str, password: str, last_four: int) -> bool:
-        """Async implementation of login."""
+        """Async implementation of login.
+
+        Args:
+            username (str): The user's username.
+            password (str): The user's password.
+            last_four (int): The last four digits of the user's phone number.
+
+        Returns:
+            bool: True if 2FA is required, False otherwise.
+
+        Raises:
+            Exception: If an unexpected error occurs during the login process.
+
+        """
         try:
             self.password = r"" + password
             await self.page.get(login_page())
@@ -137,7 +152,6 @@ class ChaseSession:
 
             await username_box.send_keys(r"" + username)
             await password_box.send_keys(self.password)
-            
             signin_button = await self.page.find("#signin-button", timeout=5)
             await signin_button.click()
             await self.page.sleep(3)
@@ -168,7 +182,7 @@ class ChaseSession:
                         approve_text = await self.page.find("text=approve", timeout=2)
                         if approve_text:
                             print(
-                                "Chase is asking for 2FA from the phone app. You have 120 seconds to approve it."
+                                "Chase is asking for 2FA from the phone app. You have 120 seconds to approve it.",
                             )
                             # Wait for redirect to landing page
                             for _ in range(120):
@@ -185,9 +199,7 @@ class ChaseSession:
                             attrs = radio_group.attrs
                             radio_buttons_json = attrs.get("radio-buttons") if attrs else None
                             if radio_buttons_json:
-                                import json
                                 radio_buttons = json.loads(radio_buttons_json)
-                                
                                 # Find the index of the button matching last_four
                                 for index, button in enumerate(radio_buttons):
                                     if f"xxx-xxx-{last_four}" in button.get("label", ""):
@@ -205,7 +217,7 @@ class ChaseSession:
                             await next_btn.click()
                             return True  # 2FA code will be needed
                     except asyncio.TimeoutError:
-                        #Timed out waiting for text message option moving on to old 2fa flow.
+                        # Timed out waiting for text message option moving on to old 2fa flow.
                         pass
 
             except asyncio.TimeoutError:
