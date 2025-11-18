@@ -48,7 +48,7 @@ def holdings_json():
     return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v2/positions"
 
 
-def order_page(account_id):
+def order_page():
     """
     Generates the URL for the order page for a specific account.
 
@@ -61,8 +61,8 @@ def order_page(account_id):
     Returns:
         str: The URL for the order page for the specified account.
     """
-    return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym="
-
+    #return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/entry;ai={account_id};sym="
+    return "https://secure.chase.com/web/auth/dashboard#/dashboard/oi-trade/equity/entry"
 
 def order_preview_page(account_id):
     """

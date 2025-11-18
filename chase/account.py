@@ -1,6 +1,8 @@
 import asyncio
 import json
+import traceback
 
+from zendriver import cdp
 from .session import ChaseSession
 from .urls import account_info
 
@@ -86,88 +88,38 @@ class AllAccount:
     async def get_investment_json(self, url: str) -> dict | None:
         """Fetch investment data from a given URL using zendriver.
 
-        Args:
-            url (str): The URL to fetch the investment data from.
-
         Returns:
-            dict: The investment account overview data if successful.
-            None: If the request fails or data is not found.
+            dict | None: A dictionary containing the parsed investment JSON on success,
+            or None if the request timed out or an error occurred while parsing.
 
         """
-        print("Trying to get investment json from network events (zendriver).")
-        result = {}
-        event = asyncio.Event()
-
-        def on_response(evt):
-            # evt['response']['url'] for CDP, evt['url'] for some wrappers
-            response_url = evt.get('response', {}).get('url') or evt.get('url')
-            if response_url and response_url.startswith(url):
-                result['requestId'] = evt.get('requestId')
-                event.set()
-
-        # Attach network event listener
-        self.session.page.cdp.Network.responseReceived(on_response)
-        await self.session.page.reload()  # or navigate as needed
         try:
-            await asyncio.wait_for(event.wait(), timeout=10)
+            async with self.session.page.expect_response(url) as response_info:
+                await self.session.page.reload()
+
+                # Wait for the response (with built-in timeout handling)
+                await asyncio.wait_for(response_info.value, timeout=10)
+
+                # Get response body directly
+                body_str, _ = await response_info.response_body
+                data = json.loads(body_str)
+
+                for info in data.get("cache", []):
+                    if info.get("url") == "/svc/rr/accounts/secure/overview/investment/v1/list":
+                        invest_json = info["response"]["investmentAccountOverviews"][0]
+                        self.total_value = invest_json["totalValue"]
+                        self.total_value_change = invest_json["totalValueChange"]
+                        return invest_json
+
         except asyncio.TimeoutError:
             print("Timed out waiting for network response.")
             return None
-
-        if 'requestId' in result:
-            body = await self.session.page.cdp.Network.getResponseBody(requestId=result['requestId'])
-            try:
-                data = json.loads(body['body'])
-            except Exception as e:
-                print(f"Error parsing response body: {e}")
-                return None
-            for info in data.get("cache", []):
-                if info.get("url") == "/svc/rr/accounts/secure/overview/investment/v1/list":
-                    invest_json = info["response"]["investmentAccountOverviews"][0]
-                    self.total_value = invest_json["totalValue"]
-                    self.total_value_change = invest_json["totalValueChange"]
-                    return invest_json
-        return None
-    '''async def get_investment_json(self, url: str) -> dict | None:
-        """Fetch investment data from a given URL.
-
-        This method sends a request to the provided URL and expects a JSON response.
-        The response is expected to contain a "cache" key, which is a list of information.
-        It iterates over this list and checks if the "url" key of each item matches a specific string.
-        If a match is found, it extracts the "chaseInvestments" data from the "response" key.
-        If the status of the request is 200, it sets the total_value and total_value_change attributes of the instance
-        and returns the "chaseInvestments" data.
-
-        Args:
-            url (str): The URL to fetch the investment data from.
-
-        Returns:
-            dict: The "chaseInvestments" data if the request is successful and the required data is found.
-            None: If the request fails or if the required data is not found in the response.
-
-        """
-        try:
-            with self.session.page.expect_response(url) as request_excpectation:
-                # Reload page and intercept network request
-                await self.session.page.reload()
-                await self.session.page.sleep(3)
-                request = await request_excpectation.value
-                body = request.response().json()
-                for info in body["cache"]:
-                    if (
-                        info["url"]
-                        == "/svc/rr/accounts/secure/overview/investment/v1/list"
-                    ):
-                        invest_json = info["response"]["investmentAccountOverviews"][0]
-                        if request.response().status == 200:
-                            self.total_value = invest_json["totalValue"]
-                            self.total_value_change = invest_json["totalValueChange"]
-                            return invest_json
-                return None
         except Exception as e:
-            print(f"Error fetching investment json: {e}")
+            print(f"Error parsing response body: {e}")
+            traceback.print_exc()
             return None
-'''
+
+        return None
 
 
 class AccountDetails:

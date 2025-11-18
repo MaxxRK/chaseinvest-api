@@ -1,11 +1,14 @@
-from enum import Enum
+import asyncio
+import json
+
+from enum import StrEnum
 
 from .session import ChaseSession
 from .urls import order_info, order_page, order_status
 
 
-class PriceType(str, Enum):
-    """This is an :class: 'enum.Enum' that contains the valid price types for an order."""
+class PriceType(StrEnum):
+    """Contains the valid price types for an order."""
 
     LIMIT = "LIMIT"
     MARKET = "MARKET"
@@ -13,8 +16,8 @@ class PriceType(str, Enum):
     STOP_LIMIT = "STOP_LIMIT"
 
 
-class Duration(str, Enum):
-    """This is an :class:'~enum.Enum' that contains the valid durations for an order."""
+class Duration(StrEnum):
+    """Contains the valid durations for an order."""
 
     DAY = "DAY"
     GTC = "GOOD_TILL_CANCELLED"
@@ -23,22 +26,16 @@ class Duration(str, Enum):
     I_C = "IMMEDIATE_OR_CANCEL"
 
 
-class OrderSide(str, Enum):
-    """
-    This is an :class:'~enum.Enum'
-    that contains the valid order types for an order.
-    """
+class OrderSide(StrEnum):
+    """Contains the valid order types for an order."""
 
     BUY = "BUY"
     SELL = "SELL"
     SELL_ALL = "SELL_ALL"
 
 
-class TypeCode(str, Enum):
-    """
-    This is an :class:'~enum.Enum'
-    that contains the valid order types for an order.
-    """
+class TypeCode(StrEnum):
+    """Contains the valid order types for an order."""
 
     CASH = "CASH"
     MARGIN = "MARGIN"
@@ -118,7 +115,7 @@ class Order:
         dry_run=True,
     ):
         """Async implementation of place_order."""
-        await self.session.page.get(order_page(account_id))
+        await self.session.page.get(order_page())
         # Chase is no longer giving the option to switch from the new trading experience to the classic one.
         # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
 
@@ -129,7 +126,7 @@ class Order:
             "AFTER HOURS WARNING": "",
             "ORDER CONFIRMATION": "",
         }
-        
+
         for i in range(0, 4):
             await self.session.page.get(order_page(account_id))
             await self.session.page.reload()
@@ -150,7 +147,7 @@ class Order:
                     await self.session.page.sleep(1)
                 except:
                     pass
-                    
+
                 order_messages["ORDER INVALID"] = "Order page loaded correctly."
                 break
             except Exception:
@@ -321,41 +318,46 @@ class Order:
             )
             return order_messages
 
-    def get_order_statuses(self, account_id):
-        """
-        Retrieves the statuses of all recent orders placed.
+    def get_order_statuses(self, account_id: str) -> str:
+        """Retrieve the statuses of all recent orders placed.
 
         This method navigates to the order status page and scrapes the status of each order.
         It returns a list of dictionaries, where each dictionary represents an order and contains
         the order number and status.
 
         Returns:
-            list[dict]: A list of dictionaries, where each dictionary contains 'order_number' and 'status' keys.
+            list[dict] | None: A list of dictionaries, where each dictionary contains 'order_number'
+            and 'status' keys on success, or None if an error occurred while retrieving statuses.
 
-        Raises:
-            Exception: If the order status page fails to load or network request cannot be intercepted.
         """
         return self.session.loop.run_until_complete(
-            self._get_order_statuses_async(account_id)
+            self._get_order_statuses_async(account_id),
         )
 
-    async def _get_order_statuses_async(self, account_id):
-        """Async implementation of get_order_statuses."""
+    async def _get_order_statuses_async(self, account_id: str) -> str:
+        """Async implementation of get_order_statuses.
+
+        Returns:
+            dict | None: Parsed JSON body containing order statuses on success,
+            or None if an error occurred while retrieving statuses.
+
+        """
         try:
             await self.session.page.get(order_status(account_id))
             await self.session.page.sleep(2)
-            
-            # Fetch order info using JavaScript
+
             url = order_info()
-            response = await self.session.page.evaluate(
-                f"""
-                async () => {{
-                    const response = await fetch('{url}');
-                    return await response.json();
-                }}
-                """
-            )
-            return response
+
+            async with self.session.page.expect_response(url) as response_info:
+                await self.session.page.reload()
+
+                # Wait for the response (with built-in timeout handling)
+                await asyncio.wait_for(response_info.value, timeout=10)
+
+                # Get response body directly
+                body_str, _ = await response_info.response_body
+                body = json.loads(body_str)
+            return body
         except Exception as e:
             print(f"Error getting order statuses: {e}")
             return None
