@@ -128,8 +128,21 @@ class Order:
         }
 
         for i in range(0, 4):
-            await self.session.page.get(order_page(account_id))
-            await self.session.page.reload()
+            await self.session.page.get(order_page())
+            # Find accounts to click
+            show_more = await self.session.page.find("#showMoreButton > mds-button", timeout=20)
+            await asyncio.sleep(2)
+            if show_more is not None:
+                await show_more.click()
+            account_list = await self.session.page.find_all("#mds-list__list-items > li > div > a")
+            for acct in account_list:
+                acc_check = acct.attrs.get("aria-label")
+                if acc_check:
+                    if str(account_id) in acc_check:
+                        await acct.click()
+                    input("We should have clicked the account now")
+                    break
+            input()
             try:
                 await self.session.page.find("css=label >> text=Buy", timeout=20)
                 quote_box = await self.session.page.find(
@@ -139,7 +152,7 @@ class Order:
                 await quote_box.send_keys(symbol)
                 await quote_box.send_keys("\n")
                 await self.session.page.find(".NOTE", timeout=10)
-                
+
                 # Wait for hidden state
                 try:
                     element = await self.session.page.find("#element-id", timeout=2)
@@ -155,7 +168,7 @@ class Order:
                     f"Order page did not load correctly cannot continue. Tried {i + 1} time(s)."
                 )
                 print(order_messages["ORDER INVALID"])
-
+        input("after iniitial order page")
         if order_messages["ORDER INVALID"] != "Order page loaded correctly.":
             return order_messages
 

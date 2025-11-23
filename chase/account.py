@@ -54,8 +54,7 @@ class AllAccount:
 
         """
         try:
-            urls = account_info()
-            invest_json = await self.get_investment_json(urls[0])
+            invest_json = await self.get_investment_json(account_info())
         except Exception as e:
             print(f"Timed out waiting for page to load: {e}")
             invest_json = None

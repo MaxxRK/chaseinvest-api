@@ -166,7 +166,7 @@ class ChaseSession:
                 if options_list:
                     # Handle shadow DOM
                     shadow_elements = await self.page.select_all(
-                        "#optionsList *", timeout=5
+                        "#optionsList *", timeout=5,
                     )
                     for element in shadow_elements:
                         attrs = element.attrs
