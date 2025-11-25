@@ -2,6 +2,7 @@ import asyncio
 import json
 
 from enum import StrEnum
+from zendriver.core.keys import SpecialKeys
 
 from .session import ChaseSession
 from .urls import order_info, order_page, order_status
@@ -130,37 +131,25 @@ class Order:
         for i in range(0, 4):
             await self.session.page.get(order_page())
             # Find accounts to click
-            show_more = await self.session.page.find("#showMoreButton > mds-button", timeout=20)
+            show_more = await self.session.page.select("#showMoreButton > mds-button", timeout=20)
             await asyncio.sleep(2)
             if show_more is not None:
                 await show_more.click()
-            account_list = await self.session.page.find_all("#mds-list__list-items > li > div > a")
-            for acct in account_list:
+            account_list = await self.session.page.select_all("#mds-list__list-items > li > div > a")
+            for num, acct in enumerate(account_list):
                 acc_check = acct.attrs.get("aria-label")
-                if acc_check:
-                    if str(account_id) in acc_check:
-                        await acct.click()
-                    input("We should have clicked the account now")
+                if acc_check and str(account_id) in acc_check:
+                    await acct.click()
                     break
-            input()
+                if num == len(account_list) - 1:
+                    raise Exception(f"Account {account_id} not found in account list.")
             try:
-                await self.session.page.find("css=label >> text=Buy", timeout=20)
-                quote_box = await self.session.page.find(
-                    "#equitySymbolLookup-block-autocomplete-validate-input-field"
-                )
+                quote_box = await self.session.page.select("#symbolLookupInput", timeout=20)
                 await quote_box.clear_input()
                 await quote_box.send_keys(symbol)
-                await quote_box.send_keys("\n")
-                await self.session.page.find(".NOTE", timeout=10)
-
-                # Wait for hidden state
-                try:
-                    element = await self.session.page.find("#element-id", timeout=2)
-                    # Wait for it to be hidden
-                    await self.session.page.sleep(1)
-                except:
-                    pass
-
+                await quote_box.send_keys(SpecialKeys.ENTER)
+                input("should be on quote page")
+                await self.session.page.select("#orderAction-segmentedButton")
                 order_messages["ORDER INVALID"] = "Order page loaded correctly."
                 break
             except Exception:
@@ -168,18 +157,17 @@ class Order:
                     f"Order page did not load correctly cannot continue. Tried {i + 1} time(s)."
                 )
                 print(order_messages["ORDER INVALID"])
-        input("after iniitial order page")
         if order_messages["ORDER INVALID"] != "Order page loaded correctly.":
             return order_messages
 
         if order_type == "BUY":
-            buy_btn = await self.session.page.find("xpath=//label[text()='Buy']")
+            buy_btn = await self.session.page.select("#orderAction-segmentedButtonInput-0")
             await buy_btn.click()
         elif order_type == "SELL":
-            sell_btn = await self.session.page.find("xpath=//label[text()='Sell']")
+            sell_btn = await self.session.page.select("#orderAction-segmentedButtonInput-1")
             await sell_btn.click()
         elif order_type == "SELL_ALL":
-            sell_all_btn = await self.session.page.find("xpath=//label[text()='Sell All']")
+            sell_all_btn = await self.session.page.select("#orderAction-segmentedButtonInput-2")
             await sell_all_btn.click()
 
         if price_type == "LIMIT":
