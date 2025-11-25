@@ -132,10 +132,10 @@ class Order:
             await self.session.page.get(order_page())
             # Find accounts to click
             show_more = await self.session.page.select("#showMoreButton > mds-button", timeout=20)
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
             if show_more is not None:
                 await show_more.click()
-            account_list = await self.session.page.select_all("#mds-list__list-items > li > div > a")
+            account_list = await self.session.page.find_all("#mds-list__list-items > li > div > a")
             for num, acct in enumerate(account_list):
                 acc_check = acct.attrs.get("aria-label")
                 if acc_check and str(account_id) in acc_check:
@@ -147,8 +147,8 @@ class Order:
                 quote_box = await self.session.page.select("#symbolLookupInput", timeout=20)
                 await quote_box.clear_input()
                 await quote_box.send_keys(symbol)
+                await asyncio.sleep(1)
                 await quote_box.send_keys(SpecialKeys.ENTER)
-                input("should be on quote page")
                 await self.session.page.select("#orderAction-segmentedButton")
                 order_messages["ORDER INVALID"] = "Order page loaded correctly."
                 break
@@ -170,33 +170,31 @@ class Order:
             sell_all_btn = await self.session.page.select("#orderAction-segmentedButtonInput-2")
             await sell_all_btn.click()
 
-        if price_type == "LIMIT":
-            limit_btn = await self.session.page.find("xpath=//label[text()='Limit']")
-            await limit_btn.click()
-        elif price_type == "MARKET":
-            market_btn = await self.session.page.find("xpath=//label[text()='Market']")
-            await market_btn.click()
-            if duration not in ["DAY", "ON_THE_CLOSE"]:
-                order_messages["ORDER INVALID"] = (
-                    "Market orders must be DAY or ON THE CLOSE."
-                )
-                return order_messages
-        elif price_type == "STOP":
-            stop_btn = await self.session.page.find("xpath=//label[text()='Stop']")
-            await stop_btn.click()
-            if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
-                order_messages["ORDER INVALID"] = (
-                    "Stop orders must be DAY or GOOD TILL CANCELLED."
-                )
-                return order_messages
-        elif price_type == "STOP_LIMIT":
-            stop_limit_btn = await self.session.page.find("xpath=//label[text()='Stop Limit']")
-            await stop_limit_btn.click()
-            if duration not in ["DAY", "GOOD_TILL_CANCELLED"]:
-                order_messages["ORDER INVALID"] = (
-                    "Stop orders must be DAY or GOOD TILL CANCELLED."
-                )
-                return order_messages
+        type_dropdown = await self.session.page.select("#orderTypeDropdown")
+        await type_dropdown.click()
+        type_values = await type_dropdown.query_selector_all("mds-select-option")
+        for type_option in type_values:
+            print(f"Type option text: {type_option.text}")
+            if price_type == "LIMIT" and type_option.text == "Limit":
+                await type_option.click()
+            elif price_type == "MARKET" and type_option.text == "Market":
+                await type_option.click()
+                if duration not in {"DAY", "ON_THE_CLOSE"}:
+                    order_messages["ORDER INVALID"] = (
+                        "Market orders must be DAY or ON THE CLOSE."
+                    )
+                    return order_messages
+            elif price_type == "MARKET ON CLOSE" and type_option.text == "Market on close":
+                await type_option.click()
+            elif (price_type == "STOP" and type_option.text == "Stop") or (
+                price_type == "STOP_LIMIT" and type_option.text == "Stop limit"
+            ):
+                await type_option.click()
+                if duration not in {"DAY", "GOOD_TILL_CANCELLED"}:
+                    order_messages["ORDER INVALID"] = (
+                        "Stop orders must be DAY or GOOD TILL CANCELLED."
+                    )
+                    return order_messages
 
         if price_type in ["LIMIT", "STOP_LIMIT"]:
             limit_field = await self.session.page.find("#tradeLimitPrice-text-input-field")
@@ -205,7 +203,7 @@ class Order:
             stop_field = await self.session.page.find("#tradeStopPrice-text-input-field")
             await stop_field.send_keys(str(stop_price))
 
-        quantity_box = await self.session.page.find("#tradeQuantity-text-input-field")
+        quantity_box = await self.session.page.find("#orderQuantity-input")
         await quantity_box.clear_input()
         await quantity_box.send_keys(str(quantity))
 
