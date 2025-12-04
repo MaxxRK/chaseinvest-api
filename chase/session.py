@@ -29,7 +29,7 @@ class ChaseSession:
 
     """
 
-    def __init__(self, *, headless: bool = True, title: str | None = None, profile_path: str = ".", debug: bool = False) -> None:
+    def __init__(self, *, docker: bool = False, headless: bool = True, title: str | None = None, profile_path: str = ".", debug: bool = False) -> None:
         """Initialize a new instance of the ChaseSession class.
 
         Args:
@@ -39,6 +39,7 @@ class ChaseSession:
             debug (bool, optional): Enable debug mode. Defaults to False.
 
         """
+        self.docker: bool = docker
         self.headless: bool = headless
         self.title: str = title
         self.profile_path: str = profile_path
@@ -86,12 +87,37 @@ class ChaseSession:
             profile.parent.mkdir(parents=True, exist_ok=True)
 
         browser_args = []
-        if self.headless:
-            browser_args.extend("--headless=new")
-            browser_args.extend("--window-size=1920,1080")
-            browser_args.extend("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
+        
+        if self.docker:
+            browser_args.extend(["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080"])
+        elif self.headless:
+            browser_args.extend(["--headless=new", "--window-size=1920,1080", 
+            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "--disable-blink-features=AutomationControlled",
+            "--disable-site-isolation-trials",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--disable-session-crashed-bubble",
+            "--disable-infobars",
+            "--disable-features=TranslateUI,VizDisplayCompositor",
+            "--no-first-run",
+            "--disable-default-apps",
+            "--disable-extensions",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--window-size=1920,1080"])
         else:
-            browser_args.append("--start-maximized")
+            browser_args.extend([  
+                "--start-maximized",  
+                "--disable-session-crashed-bubble",
+                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+                "--disable-blink-features=AutomationControlled",  
+                "--disable-infobars",  
+                "--disable-features=TranslateUI,VizDisplayCompositor",
+                "--no-first-run",  
+                "--disable-default-apps",
+                "--disable-extensions"
+            ])
         # zendriver has built-in stealth and anti-detection
         self.browser = await uc.start(
             browser_args=browser_args,
