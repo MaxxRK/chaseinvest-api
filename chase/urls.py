@@ -130,7 +130,7 @@ def validate_order(order_type: str) -> str:
     """
     if order_type.lower() == "buy":
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-order-validations"
-    elif order_type.lower() == "sell":
+    elif order_type.lower() in {"sell", "sell_all"}:
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-order-validations"
     else:
         raise ValueError("order_type must be either 'buy' or 'sell'")
@@ -180,12 +180,13 @@ def get_headers() -> dict[str, str]:
 
     """
     return {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Connection": "keep-alive",
-        "Content-Length": "20",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        'accept': 'application/json, text/plain, */*',
+        'content-type': 'application/json',
+        'referer': 'https://secure.chase.com/web/auth/dashboard',
+        'x-jpmc-csrf-token': 'NONE',
+        'x-jpmc-channel': 'id=C30',
+        'origin': 'https://secure.chase.com',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
     }
 
 # API Endpoints

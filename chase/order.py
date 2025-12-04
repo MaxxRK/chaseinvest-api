@@ -1,11 +1,12 @@
 import asyncio
 import json
 
+from curl_cffi import requests
 from enum import StrEnum
 from zendriver.core.keys import SpecialKeys
 
 from .session import ChaseSession
-from .urls import order_info, order_page, order_status
+from .urls import order_info, order_page, execute_order, validate_order
 
 
 class PriceType(StrEnum):
@@ -117,8 +118,6 @@ class Order:
     ):
         """Async implementation of place_order."""
         await self.session.page.get(order_page())
-        # Chase is no longer giving the option to switch from the new trading experience to the classic one.
-        # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
 
         order_messages = {
             "ORDER INVALID": "",
@@ -128,110 +127,65 @@ class Order:
             "ORDER CONFIRMATION": "",
         }
 
-        for i in range(0, 4):
-            await self.session.page.get(order_page())
-            # Find accounts to click
-            show_more = await self.session.page.select("#showMoreButton > mds-button", timeout=20)
-            await asyncio.sleep(1)
-            if show_more is not None:
-                await show_more.click()
-            account_list = await self.session.page.find_all("#mds-list__list-items > li > div > a")
-            for num, acct in enumerate(account_list):
-                acc_check = acct.attrs.get("aria-label")
-                if acc_check and str(account_id) in acc_check:
-                    await acct.click()
-                    break
-                if num == len(account_list) - 1:
-                    raise Exception(f"Account {account_id} not found in account list.")
-            try:
-                quote_box = await self.session.page.select("#symbolLookupInput", timeout=20)
-                await quote_box.clear_input()
-                await quote_box.send_keys(symbol)
-                await asyncio.sleep(1)
-                await quote_box.send_keys(SpecialKeys.ENTER)
-                await self.session.page.select("#orderAction-segmentedButton")
-                order_messages["ORDER INVALID"] = "Order page loaded correctly."
-                break
-            except Exception:
-                order_messages["ORDER INVALID"] = (
-                    f"Order page did not load correctly cannot continue. Tried {i + 1} time(s)."
-                )
-                print(order_messages["ORDER INVALID"])
-        if order_messages["ORDER INVALID"] != "Order page loaded correctly.":
-            return order_messages
-
+        # Implement API calls instead of browser interactions where possible.
+        # Thanks @OSSY!
+        cookies = await self.session.browser.cookies.get_all()
+        cookies_dict = {c.name: c.value for c in cookies}
+       
+        order_payload = {
+           "accountIdentifier": int(account_id),
+            #"marketPriceAmount": current_price, do i need this for market?
+            "orderQuantity": quantity,
+            "accountTypeCode": "CASH",
+            "timeInForceCode": "DAY",
+            "securitySymbolCode": symbol,
+            "tradeChannelName": "DESKTOP",
+            "dollarBasedTradingEligibleIndicator": False,
+            "orderTypeCode": price_type 
+        }
+        
+        url_validate = validate_order(order_type=order_type)
+        url_execute = execute_order(order_type=order_type)
         if order_type == "BUY":
-            buy_btn = await self.session.page.select("#orderAction-segmentedButtonInput-0")
-            await buy_btn.click()
-        elif order_type == "SELL":
-            sell_btn = await self.session.page.select("#orderAction-segmentedButtonInput-1")
-            await sell_btn.click()
+            order_payload["tradeActionName"] = "BUY"
+        elif order_type =="SELL":
+            order_payload["tradeActionName"] = "SELL"
         elif order_type == "SELL_ALL":
-            sell_all_btn = await self.session.page.select("#orderAction-segmentedButtonInput-2")
-            await sell_all_btn.click()
-
-        type_dropdown = await self.session.page.select("#orderTypeDropdown")
-        await type_dropdown.click()
-        type_values = await type_dropdown.query_selector_all("mds-select-option")
-        for type_option in type_values:
-            print(f"Type option text: {type_option.text}")
-            if price_type == "LIMIT" and type_option.text == "Limit":
-                await type_option.click()
-            elif price_type == "MARKET" and type_option.text == "Market":
-                await type_option.click()
-                if duration not in {"DAY", "ON_THE_CLOSE"}:
-                    order_messages["ORDER INVALID"] = (
-                        "Market orders must be DAY or ON THE CLOSE."
-                    )
-                    return order_messages
-            elif price_type == "MARKET ON CLOSE" and type_option.text == "Market on close":
-                await type_option.click()
-            elif (price_type == "STOP" and type_option.text == "Stop") or (
-                price_type == "STOP_LIMIT" and type_option.text == "Stop limit"
-            ):
-                await type_option.click()
-                if duration not in {"DAY", "GOOD_TILL_CANCELLED"}:
-                    order_messages["ORDER INVALID"] = (
-                        "Stop orders must be DAY or GOOD TILL CANCELLED."
-                    )
-                    return order_messages
+            order_payload["tradeActionName"] = "SELL_ALL"
+            
+        if price_type == "LIMIT":
+            order_payload["limitPriceAmount"] = limit_price
+        elif price_type == "MARKET":
+            if duration not in {"DAY", "ON_THE_CLOSE"}:
+                order_messages["ORDER INVALID"] = (
+                    "Market orders must be DAY or ON THE CLOSE."
+                )
+                return order_messages
+        elif price_type == "MARKET ON CLOSE":
+            pass
+        elif price_type in {"STOP", "STOP_LIMIT"}:
+            if duration not in {"DAY", "GOOD_TILL_CANCELLED"}:
+                order_messages["ORDER INVALID"] = (
+                    "Stop orders must be DAY or GOOD TILL CANCELLED."
+                )
+                return order_messages
 
         if price_type in ["LIMIT", "STOP_LIMIT"]:
-            limit_field = await self.session.page.find("#tradeLimitPrice-text-input-field")
-            await limit_field.send_keys(str(limit_price))
+            order_payload["limitPriceAmount"] = limit_price
         if price_type in ["STOP", "STOP_LIMIT"]:
-            stop_field = await self.session.page.find("#tradeStopPrice-text-input-field")
-            await stop_field.send_keys(str(stop_price))
-
-        quantity_box = await self.session.page.find("#orderQuantity-input")
-        await quantity_box.clear_input()
-        await quantity_box.send_keys(str(quantity))
+            order_payload["stopPriceAmount"] = stop_price
 
         if duration == "DAY":
-            day_btn = await self.session.page.find("xpath=//label[text()='Day']")
-            await day_btn.click()
+            order_payload["timeInForceCode"] = "DAY"
         elif duration == "GOOD_TILL_CANCELLED":
-            gtc_btn = await self.session.page.find("xpath=//label[text()='Good 'til canceled']")
-            await gtc_btn.click()
+            order_payload["timeInForceCode"] = "GOOD_TILL_CANCELLED"
         elif duration == "ON_THE_OPEN":
-            open_btn = await self.session.page.find("xpath=//label[text()='On open']")
-            await open_btn.click()
+            order_payload["timeInForceCode"] = "ON_THE_OPEN"
         elif duration == "ON_THE_CLOSE":
-            close_btn = await self.session.page.find("xpath=//label[text()='On close']")
-            await close_btn.click()
+            order_payload["timeInForceCode"] = "ON_THE_CLOSE"
         elif duration == "IMMEDIATE_OR_CANCEL":
-            icon_wrap = await self.session.page.find("#tradeExecutionOptions-iconwrap")
-            await icon_wrap.click()
-            ioc_btn = await self.session.page.find("xpath=//label[text()='Immediate or Cancel']")
-            await ioc_btn.click()
+            order_payload["timeInForceCode"] = "IMMEDIATE_OR_CANCEL"
 
-        try:
-            preview_btn = await self.session.page.find("#previewOrder", timeout=5)
-            await preview_btn.click()
-        except Exception:
-            raise Exception(
-                "No preview button found or it is not interactable. Cannot continue."
-            )
 
         try:
             warning = await self.session.page.find(

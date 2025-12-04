@@ -93,7 +93,6 @@ class ChaseSession:
         elif self.headless:
             browser_args.extend(["--headless=new", "--window-size=1920,1080", 
             "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-            "--disable-blink-features=AutomationControlled",
             "--disable-site-isolation-trials",
             "--disable-features=IsolateOrigins,site-per-process",
             "--disable-session-crashed-bubble",
@@ -110,8 +109,7 @@ class ChaseSession:
             browser_args.extend([  
                 "--start-maximized",  
                 "--disable-session-crashed-bubble",
-                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-                "--disable-blink-features=AutomationControlled",  
+                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",  
                 "--disable-infobars",  
                 "--disable-features=TranslateUI,VizDisplayCompositor",
                 "--no-first-run",  
