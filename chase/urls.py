@@ -41,16 +41,6 @@ def opt_out_verification_page() -> str:
     return "https://secure05c.chase.com/web/auth/#/logon/recognizeUser/esasiOptout"
 
 
-def account_info_new() -> str:
-    """Return the Chase account information URL.
-
-    Returns:
-        str: The URL of the Chase account information page.
-
-    """
-    return "https://secure.chase.com/svc/rl/accounts/l4/v1/app/data/list"
-
-
 def account_info() -> str:
     """Return the Chase account information URL.
 
@@ -102,20 +92,48 @@ def order_page() -> str:
     return "https://secure.chase.com/web/auth/dashboard#/dashboard/oi-trade/equity/entry"
 
 
-def order_preview_page(account_id: str) -> str:
-    """Return the URL for the order preview page for a specific account.
-
-    This function takes an account ID as an argument and returns the URL for the
-    order preview page for that account on the Chase website.
-
-    Args:
-        account_id (str): The ID of the account for which to generate the URL.
+def quote_url() -> str:
+    """Return the URL for the quote endpoint.
 
     Returns:
-        str: The URL for the order preview page for the specified account.
+        str: The URL to fetch equity quotes.
 
     """
-    return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/preview;ai={account_id}"
+    return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes"
+
+def execute_order(order_type: str) -> str:
+    """Return the URL for the order execution endpoint.
+
+    Args:
+        order_type (str): The type of order, either "buy" or "sell".
+
+    Returns:
+        str: The URL to execute the specified type of order.
+
+    """
+    if order_type.lower() == "buy":
+        return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-orders"
+    elif order_type.lower() == "sell":
+        return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-orders"
+    else:
+        raise ValueError("order_type must be either 'buy' or 'sell'")
+
+def validate_order(order_type: str) -> str:
+    """Return the URL for the order validation endpoint.
+
+    Args:
+        order_type (str): The type of order, either "buy" or "sell".
+
+    Returns:
+        str: The URL to validate the specified type of order.
+
+    """
+    if order_type.lower() == "buy":
+        return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-order-validations"
+    elif order_type.lower() == "sell":
+        return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-order-validations"
+    else:
+        raise ValueError("order_type must be either 'buy' or 'sell'")
 
 
 def order_analytics() -> str:
@@ -126,48 +144,6 @@ def order_analytics() -> str:
 
     """
     return "https://secure.chase.com/events/analytics/public/v1/events/raw/"
-
-
-def warning_page(account_id: str) -> str:
-    """Return the URL for the warning page for a specific account.
-
-    This function takes an account ID as an argument and returns the URL for the
-    warning page for that account on the Chase website.
-
-    Args:
-        account_id (str): The ID of the account for which to generate the URL.
-
-    Returns:
-        str: The URL for the warning page for the specified account.
-
-    """
-    return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/warnings;ai={account_id}"
-
-
-def after_hours_warning(account_id: str) -> str:
-    """Return the URL for the after-hours warning page for a specific account.
-
-    This function takes an account ID as an argument and returns the URL for the
-    after-hours warning page for that account on the Chase website.
-
-    Args:
-        account_id (str): The ID of the account for which to generate the URL.
-
-    Returns:
-        str: The URL for the after-hours warning page for the specified account.
-
-    """
-    return f"https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/afterHours;ai={account_id}"
-
-
-def order_confirmation() -> str:
-    """Return the Chase equity order confirmation page URL.
-
-    Returns:
-        str: The URL for the equity order confirmation page.
-
-    """
-    return "https://secure.chase.com/web/auth/dashboard#/dashboard/trade/equity/confirmation"
 
 
 def order_status(account_id: str) -> str:
@@ -211,3 +187,14 @@ def get_headers() -> dict[str, str]:
         "Content-Length": "20",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     }
+
+# API Endpoints
+API_ACCOUNT_LIST = "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list"
+API_POSITIONS = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v2/positions"
+
+# Trading Endpoints
+API_QUOTE = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes"
+API_VALIDATE_BUY = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-order-validations"
+API_EXECUTE_BUY = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-orders"
+API_VALIDATE_SELL = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-order-validations"
+API_EXECUTE_SELL = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-orders"
