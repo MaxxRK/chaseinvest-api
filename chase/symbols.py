@@ -1,10 +1,11 @@
 import asyncio
 import datetime
 import json
-from zoneinfo import ZoneInfo
-
+from curl_cffi import requests, cookies
 from .session import ChaseSession
 from .urls import account_holdings, holdings_json, order_page
+
+from .urls import quote_url,get_headers
 
 
 class SymbolQuote:
@@ -74,48 +75,28 @@ class SymbolQuote:
         # Chase is no longer giving the option to switch from the new trading experience to the classic one.
         # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
 
-        await self.session.page.find("css=label >> text=Buy")
-        symbol_input = await self.session.page.find(
-            "#equitySymbolLookup-block-autocomplete-validate-input-field"
-        )
-        await symbol_input.send_keys(self.symbol)
-        await symbol_input.send_keys("\n")
+        headers = get_headers()
+        url = f"{quote_url()}?security-symbol-code={self.symbol}&security-validate-indicator=true&dollar-based-trading-include-indicator=true"
 
-        await self.session.page.find("#equityQuoteDetails > section")
+        try:
+            response = requests.get(url, headers=headers, cookies=cookies, impersonate="chrome")
+            quote_data = response.json()
+        except Exception as e:
+            print(f"Quote error: {e}")
 
-        ask_element = await self.session.page.find(
-            "#equityQuoteDetails > section > section > dl > div.askClass.quote-detail-list.col-xs-6.no-padding-right > dd"
-        )
-        ask_text = await ask_element.text
-        ask_string = ask_text.split()
+        print(response.json())
 
-        bid_element = await self.session.page.find(
-            "#equityQuoteDetails > section > section > dl > div.bidClass.quote-detail-list.col-xs-6.no-padding-left > dd"
-        )
-        bid_text = await bid_element.text
-        bid_string = bid_text.split()
-
-        last_element = await self.session.page.find(
-            "#equityQuoteDetails > section > section > dl > div.priceClass.quote-detail-list.list-border.col-xs-6.no-padding-left > dd"
-        )
-        last_text = await last_element.text
-        last_string = last_text.split()
-
-        security_desc_element = await self.session.page.find("#asset-description")
-        security_desc = await security_desc_element.text
-        security_desc_string = security_desc.split("\n", 1)[1].strip()
-
-        self.ask_price = float(ask_string[0].replace(",", ""))
-        self.ask_exchange_code = ask_string[3].replace("(", "").replace(")", "")
-        self.ask_quantity = int(ask_string[2].replace(",", ""))
-        self.bid_price = float(bid_string[0].replace(",", ""))
-        self.bid_exchange_code = bid_string[3].replace("(", "").replace(")", "")
-        self.bid_quantity = int(bid_string[2].replace(",", ""))
-        self.last_trade_price = float(last_string[0].replace(",", ""))
-        self.last_trade_quantity = float(last_string[2].replace(",", ""))
-        self.last_exchange_code = last_string[3].replace("(", "").replace(")", "")
+        self.ask_price = float(quote_data["askPriceAmount"])
+        self.ask_exchange_code = quote_data["askExchangeCode"]
+        self.ask_quantity = int(quote_data["askQuantity"])
+        self.bid_price = float(quote_data["bidPriceAmount"])
+        self.bid_exchange_code = quote_data["bidExchangeCode"]
+        self.bid_quantity = int(quote_data["bidQuantity"])
+        self.last_trade_price = float(quote_data["lastTradePriceAmount"])
+        self.last_trade_quantity = float(quote_data["lastTradeQuantity"])
+        self.last_exchange_code = quote_data["lastExchangeCode"]
         self.as_of_time = datetime.datetime.now(tz=self.local_tz)
-        self.security_description = security_desc_string
+        self.security_description = quote_data["securityDescription"]
 
 
 class SymbolHoldings:
