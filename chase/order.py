@@ -67,8 +67,8 @@ class Order:
         after_hours: bool = True,
         dry_run=True,
     ):
-        """
-        Builds and places an order.
+        """Build and place an order.
+
         :attr: 'order_confirmation`
         contains the order confirmation data after order placement.
 
@@ -87,6 +87,7 @@ class Order:
 
         Returns:
             Order:order_confirmation: Dictionary containing the order confirmation data.
+
         """
         return self.session.loop.run_until_complete(
             self._place_order_async(

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import secrets
 import traceback
 import types
 
@@ -33,8 +34,9 @@ class ChaseSession:
         """Initialize a new instance of the ChaseSession class.
 
         Args:
-            title (string): Denotes the name of the profile and if populated will make the session persistent.
+            docker (bool, optional): Whether the browser is running in a Docker environment. Defaults to False.
             headless (bool, optional): Whether the browser should run in headless mode. Defaults to True.
+            title (string): Denotes the name of the profile and if populated will make the session persistent.
             profile_path (str, optional): The path to the user profile directory for the browser. Defaults to None.
             debug (bool, optional): Enable debug mode. Defaults to False.
 
@@ -87,7 +89,7 @@ class ChaseSession:
             profile.parent.mkdir(parents=True, exist_ok=True)
 
         browser_args = []
-        
+
         if self.docker:
             browser_args.extend(["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080"])
         elif self.headless:
@@ -106,13 +108,13 @@ class ChaseSession:
             "--disable-gpu",
             "--window-size=1920,1080"])
         else:
-            browser_args.extend([  
+            browser_args.extend([
                 "--start-maximized",  
                 "--disable-session-crashed-bubble",
                 "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",  
-                "--disable-infobars",  
+                "--disable-infobars",
                 "--disable-features=TranslateUI,VizDisplayCompositor",
-                "--no-first-run",  
+                "--no-first-run",
                 "--disable-default-apps",
                 "--disable-extensions"
             ])
@@ -174,8 +176,12 @@ class ChaseSession:
             if not username_box or not password_box:
                 raise Exception("Could not find username or password fields.")
 
-            await username_box.send_keys(r"" + username)
-            await password_box.send_keys(self.password)
+            for letter in r"" + username:
+                await username_box.send_keys(letter)
+                await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.25))
+            for letter in self.password:
+                await password_box.send_keys(letter)
+                await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.25))
             signin_button = await self.page.find("#signin-button", timeout=5)
             await signin_button.click()
             await self.page.sleep(3)

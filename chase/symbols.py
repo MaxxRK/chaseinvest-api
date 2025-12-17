@@ -57,13 +57,17 @@ class SymbolQuote:
         self.bid_price: float = 0
         self.bid_exchange_code: str = ""
         self.bid_quantity: int = 0
-        self.last_trade_price: float = 0
+        self.change_amount: float = 0
+        self.last_trade_price_amount: float = 0
         self.last_trade_quantity: float = 0
-        self.last_exchange_code: str = ""
-        self.last_exchange_code: str = ""
-        self.as_of_time: datetime.datetime | None = None
+        self.last_trade_exchange_code: str = ""
+        self.change_percentage: float = 0
+        self.as_of_timestamp: datetime.datetime | None = None
+        self.security_description_text: str = ""
+        self.security_symbol_code: str = ""
+        self.dollar_based_trading_eligible_indicator: bool = False
+        self.security_status_code: str = ""
         self.local_tz: datetime.datetime = datetime.datetime.now().astimezone().tzinfo
-        self.security_description: str = ""
         self.session.loop.run_until_complete(self.get_symbol_quote())
 
     async def get_symbol_quote(self) -> None:
@@ -75,11 +79,14 @@ class SymbolQuote:
         # Chase is no longer giving the option to switch from the new trading experience to the classic one.
         # This will have to be switched to use the new experience soon.      - 9/14/2025 MAXXRK
 
+        cookies = await self.session.browser.cookies.get_all()
+        cookies_dict = {c.name: c.value for c in cookies}
+
         headers = get_headers()
         url = f"{quote_url()}?security-symbol-code={self.symbol}&security-validate-indicator=true&dollar-based-trading-include-indicator=true"
 
         try:
-            response = requests.get(url, headers=headers, cookies=cookies, impersonate="chrome")
+            response = requests.get(url, headers=headers, cookies=cookies_dict, impersonate="chrome")
             quote_data = response.json()
         except Exception as e:
             print(f"Quote error: {e}")
@@ -92,11 +99,20 @@ class SymbolQuote:
         self.bid_price = float(quote_data["bidPriceAmount"])
         self.bid_exchange_code = quote_data["bidExchangeCode"]
         self.bid_quantity = int(quote_data["bidQuantity"])
-        self.last_trade_price = float(quote_data["lastTradePriceAmount"])
+        self.change_amount = float(quote_data["changeAmount"])
+        self.last_trade_price_amount = float(quote_data["lastTradePriceAmount"])
         self.last_trade_quantity = float(quote_data["lastTradeQuantity"])
-        self.last_exchange_code = quote_data["lastExchangeCode"]
-        self.as_of_time = datetime.datetime.now(tz=self.local_tz)
-        self.security_description = quote_data["securityDescription"]
+        self.last_trade_exchange_code = quote_data["lastTradeExchangeCode"]
+        self.change_percentage = float(quote_data["changePercentage"])
+        self.as_of_timestamp = datetime.datetime.strptime(
+            quote_data["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ",
+        ).replace(tzinfo=self.local_tz)
+        self.security_description_text = quote_data["securityDescriptionText"]
+        self.security_symbol_code = quote_data["securitySymbolCode"]
+        self.dollar_based_trading_eligible_indicator = bool(
+            quote_data["dollarBasedTradingEligibleIndicator"],
+        )
+        self.security_status_code = quote_data["securityStatusCode"]
 
 
 class SymbolHoldings:
