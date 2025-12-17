@@ -96,7 +96,7 @@ symbol_quote = sym.SymbolQuote(account_ids[0], cs, "INTC")
 print("====================================")
 print("SYMBOL QUOTE")
 print(
-    f"{symbol_quote.security_description} ask price {symbol_quote.ask_price}, @{symbol_quote.as_of_time} and the last trade was {symbol_quote.last_trade_price}."
+    f"{symbol_quote.security_description_text} ask price {symbol_quote.ask_price}, @{symbol_quote.as_of_timestamp} and the last trade was {symbol_quote.last_trade_price}."
 )
 print("====================================")
 

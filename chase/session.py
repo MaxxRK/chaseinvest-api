@@ -178,10 +178,10 @@ class ChaseSession:
 
             for letter in r"" + username:
                 await username_box.send_keys(letter)
-                await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.25))
+                await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
             for letter in self.password:
                 await password_box.send_keys(letter)
-                await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.25))
+                await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
             signin_button = await self.page.find("#signin-button", timeout=5)
             await signin_button.click()
             await self.page.sleep(3)
