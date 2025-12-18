@@ -61,7 +61,7 @@ class SymbolQuote:
         self.last_trade_price_amount: float = 0
         self.last_trade_quantity: float = 0
         self.last_trade_exchange_code: str = ""
-        self.change_percentage: float = 0
+        self.change_percent: float = 0
         self.as_of_timestamp: datetime.datetime | None = None
         self.security_description_text: str = ""
         self.security_symbol_code: str = ""
@@ -103,7 +103,7 @@ class SymbolQuote:
         self.last_trade_price_amount = float(quote_data["lastTradePriceAmount"])
         self.last_trade_quantity = float(quote_data["lastTradeQuantity"])
         self.last_trade_exchange_code = quote_data["lastTradeExchangeCode"]
-        self.change_percentage = float(quote_data["changePercentage"])
+        self.change_percent = float(quote_data["changePercent"])
         self.as_of_timestamp = datetime.datetime.strptime(
             quote_data["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ",
         ).replace(tzinfo=self.local_tz)
