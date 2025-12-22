@@ -2,10 +2,13 @@ import asyncio
 import json
 import secrets
 import traceback
-import types
+from typing import TYPE_CHECKING
 
 import anyio
 import zendriver as uc
+
+if TYPE_CHECKING:
+    from zendriver import Browser, Tab
 
 from .urls import landing_page, login_page, opt_out_verification_page
 
@@ -43,40 +46,15 @@ class ChaseSession:
         """
         self.docker: bool = docker
         self.headless: bool = headless
-        self.title: str = title
+        self.title: str | None = title
         self.profile_path: str = profile_path
         self.password: str = ""
-        self.browser = None
-        self.page = None
+        self.browser: Browser
+        self.page: Tab
         self.debug: bool = debug
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.get_browser())
-
-    def __enter__(self) -> "ChaseSession":
-        """Enter the runtime context related to this object.
-
-        Returns:
-            self: Returns the instance of the class.
-
-        """
-
-    def __exit__(self, exc_type: type[BaseException] | None, exc_value: BaseException | None, tb: types.TracebackType | None) -> None:
-        """Exit the runtime context related to this object.
-
-        Args:
-            exc_type (Type[BaseException]): The type of the exception.
-            exc_value (BaseException): The instance of the exception.
-            tb (TracebackType): A traceback object encapsulating the call stack.
-
-        """
-        if exc_type is not None:
-            print("An error occurred in the context manager:")
-            traceback.print_exception(exc_type, exc_value, tb)
-        self.loop.run_until_complete(self.close_browser())
-        self.loop.close()
-        self.loop.run_until_complete(self.close_browser())
-        self.loop.close()
 
     async def get_browser(self) -> None:
         """Initialize a browser instance using zendriver."""
@@ -86,14 +64,14 @@ class ChaseSession:
         self.profile_path = str(profile)
 
         if not await profile.exists():
-            profile.parent.mkdir(parents=True, exist_ok=True)
+            await profile.parent.mkdir(parents=True, exist_ok=True)
 
         browser_args = []
 
         if self.docker:
             browser_args.extend(["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080"])
         elif self.headless:
-            browser_args.extend(["--headless=new", "--window-size=1920,1080", 
+            browser_args.extend(["--headless=new", "--window-size=1920,1080",
             "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
             "--disable-site-isolation-trials",
             "--disable-features=IsolateOrigins,site-per-process",
@@ -109,14 +87,14 @@ class ChaseSession:
             "--window-size=1920,1080"])
         else:
             browser_args.extend([
-                "--start-maximized",  
+                "--start-maximized",
                 "--disable-session-crashed-bubble",
-                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",  
+                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
                 "--disable-infobars",
                 "--disable-features=TranslateUI,VizDisplayCompositor",
                 "--no-first-run",
                 "--disable-default-apps",
-                "--disable-extensions"
+                "--disable-extensions",
             ])
         # zendriver has built-in stealth and anti-detection
         self.browser = await uc.start(
@@ -127,7 +105,15 @@ class ChaseSession:
 
     def close_browser(self) -> None:
         """Close the browser."""
-        return self.loop.run_until_complete(self._close_browser_async())
+        try:
+            return self.loop.run_until_complete(self._close_browser_async())
+        except RuntimeError as e:
+            if "This event loop is already running" in str(e):
+                # We're in an async context, schedule the task
+                return asyncio.create_task(self._close_browser_async())
+            else:
+                # Some other RuntimeError, re-raise it
+                raise
 
     async def _close_browser_async(self) -> None:
         """Async implementation of close browser."""
@@ -147,7 +133,7 @@ class ChaseSession:
 
         """
         return self.loop.run_until_complete(
-            self._login_async(username, password, last_four)
+            self._login_async(username, password, last_four),
         )
 
     async def _login_async(self, username: str, password: str, last_four: int) -> bool:
@@ -177,12 +163,12 @@ class ChaseSession:
                 raise Exception("Could not find username or password fields.")
 
             # Scroll to help defeat bot detection?
-            await self.page.scroll_down(secrets.SystemRandom().uniform(0, 40), secrets.SystemRandom().uniform(900, 1500))
+            await self.page.scroll_down(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
             for letter in r"" + username:
                 await username_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
             # Scroll to help defeat bot detection?
-            await self.page.scroll_up(secrets.SystemRandom().uniform(0, 40), secrets.SystemRandom().uniform(900, 1500))
+            await self.page.scroll_up(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
             for letter in self.password:
                 await password_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
@@ -191,7 +177,7 @@ class ChaseSession:
             await self.page.sleep(3)
 
             # Check if we are on the landing page (successful login without 2FA)
-            if landing_page() in self.page.url:
+            if landing_page() in self.page.url:  # type: operator
                 return False  # No 2FA needed
 
             # Check for 2FA options

@@ -1,10 +1,8 @@
 import asyncio
 import json
-from logging import log
+from enum import StrEnum
 
 from curl_cffi import requests
-from enum import StrEnum
-from zendriver.core.keys import SpecialKeys
 
 from .session import ChaseSession
 from .urls import order_info, order_page, execute_order, validate_order, order_status
@@ -45,29 +43,37 @@ class TypeCode(StrEnum):
 
 
 class Order:
-    """
-    This class contains information about an order.
-    It also contains a method to place an order.
+    """Contains information about an order and provides methods to place orders.
+
+    Also contains a method to place an order.
     """
 
-    def __init__(self, session: ChaseSession, accept_warning: bool = True):
+    def __init__(self, session: ChaseSession, accept_warning: bool = True) -> None:  # noqa: FBT001
+        """Initialize an Order instance.
+
+        Args:
+            session (ChaseSession): The Chase session to use for order operations.
+            accept_warning (bool, optional): Whether to accept warnings during order placement.
+                                           Defaults to True.
+
+        """
         self.session = session
         self.accept_warning = accept_warning
         self.order_number: str = ""
 
-    def place_order(
+    def place_order(  # noqa: PLR0913, PLR0917
         self,
-        account_id,
+        account_id: str,
         quantity: int,
         price_type: PriceType,
-        symbol,
+        symbol: str,
         duration: Duration,
         order_type: OrderSide,
         limit_price: float = 0.00,
         stop_price: float = 0.00,
-        after_hours: bool = True,
-        dry_run=True,
-    ):
+        after_hours: bool = True,  # noqa: FBT001, FBT002
+        dry_run: bool = True,  # noqa: FBT001, FBT002
+    ) -> dict:
         """Build and place an order.
 
         :attr: 'order_confirmation`
@@ -98,32 +104,38 @@ class Order:
                 symbol,
                 duration,
                 order_type,
-                limit_price,
-                stop_price,
-                after_hours,
-                dry_run,
-            )
+                limit_price=limit_price,
+                stop_price=stop_price,
+                after_hours=after_hours,
+                dry_run=dry_run,
+            ),
         )
 
-    async def _place_order_async(
+    async def _place_order_async(  # noqa: PLR0913, PLR0917
         self,
-        account_id,
+        account_id: str,
         quantity: int,
         price_type: PriceType,
-        symbol,
+        symbol: str,
         duration: Duration,
         order_type: OrderSide,
         limit_price: float = 0.00,
         stop_price: float = 0.00,
-        after_hours: bool = True,
-        dry_run=True,
-    ):
-        """Async implementation of place_order."""
+        after_hours: bool = True,  # noqa: FBT001, FBT002
+        dry_run: bool = True, # noqa: FBT001, FBT002
+    ) -> dict:
+        """Async implementation of place_order.
+
+        Returns:
+            dict: Dictionary containing order validation/confirmation data with keys
+                  "ORDER INVALID", "ORDER VALIDATION", and "ORDER CONFIRMATION".
+
+        """
         await self.session.page.get(order_page())
 
         order_messages = {
             "ORDER INVALID": "",
-            "EXCHANGE ID": "",
+            "ORDER VALIDATION": "",
             "ORDER CONFIRMATION": "",
         }
 
@@ -193,10 +205,10 @@ class Order:
 
             if resp_val.status_code != 200:
                 order_messages["ORDER INVALID"] = f"Validation Failed ({resp_val.status_code}): {resp_val.text}"
-                return False
 
             val_data = resp_val.json()
 
+            print(val_data)
             error_msgs = val_data.get("tradeErrorMessages", [])
             order_messages["ORDER INVALID"] = error_msgs
 
@@ -205,11 +217,13 @@ class Order:
 
             exchange_id = val_data.get("financialInformationExchangeSystemOrderIdentifier")
 
-            if not exchange_id:
-                order_messages["EXCHANGE ID"] = f"Validation passed but no Exchange ID returned: {val_data}"
+            if dry_run:
+                order_messages["ORDER VALIDATION"] = val_data
                 return order_messages
+            if not exchange_id:
+                order_messages["ORDER VALIDATION"] = val_data
         except Exception as e:
-            order_messages["ORDER INVALID"] = f"Validation Exception: {e}"
+            order_messages["ORDER INVALID"] = f"Execution Exception: {e}"
 
         try:
             # STEP 2: EXECUTION
@@ -220,8 +234,8 @@ class Order:
 
             if resp_exec.status_code != 200:
                 order_messages["ORDER INVALID"] = f"Execution Failed ({resp_exec.status_code}): {resp_exec.text}"
-                return order_messages
-
+            elif resp_exec.status_code == 200:
+                order_messages["ORDER VALIDATION"] = val_data
             exec_data = resp_exec.json()
             #order_id = exec_data.get("orderIdentifier")
             order_messages["ORDER CONFIRMATION"] = exec_data
