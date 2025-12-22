@@ -104,7 +104,12 @@ class ChaseSession:
         self.page = await self.browser.get()
 
     def close_browser(self) -> None:
-        """Close the browser."""
+        """Close the browser.
+
+        Raises:
+            RuntimeError: If an unexpected runtime error occurs during browser closure.
+
+        """
         try:
             return self.loop.run_until_complete(self._close_browser_async())
         except RuntimeError as e:
@@ -209,7 +214,7 @@ class ChaseSession:
                                 await self.page.sleep(1)
                                 if landing_page() in self.page.url:
                                     return False
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         # Timed out waiting for push notification moving on to text message flow
                         pass
                     try:
@@ -236,15 +241,15 @@ class ChaseSession:
                             next_btn = await self.page.find("#next-content", timeout=5)
                             await next_btn.click()
                             return True  # 2FA code will be needed
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         # Timed out waiting for text message option moving on to old 2fa flow.
                         pass
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # New 2FA options not found, proceed to old 2FA flow
                 try:
                     dropdown = await self.page.find(
-                        "#header-simplerAuth-dropdownoptions-styledselect", timeout=5
+                        "#header-simplerAuth-dropdownoptions-styledselect", timeout=5,
                     )
                     await dropdown.click()
                     options = await self.page.query_selector_all('li[role="presentation"]')
@@ -311,7 +316,7 @@ class ChaseSession:
                     await code_entry.send_keys(code)
                     next_btn = await self.page.find("#next-content", timeout=5)
                     await next_btn.click()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
             try:
@@ -322,7 +327,7 @@ class ChaseSession:
                 await pwd_field.send_keys(self.password)
                 submit_btn = await self.page.find('button[type="submit"]', timeout=5)
                 await submit_btn.click()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
             try:
@@ -335,7 +340,7 @@ class ChaseSession:
 
                     save_btn = await self.page.find("//button[contains(., 'Save and go to account')]", timeout=5)
                     await save_btn.click()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
             # Wait for landing page

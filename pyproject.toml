@@ -15,4 +15,4 @@ target-version = "py312"
 extend = "./styles/ruff.toml"
 include = ["src/*"]
 exclude = ["src/vendors/*", "guides/*"]
-ignore = ["PLR1702", "PLR0915", "PLR0914","PLR0912", "C901"]
+ignore = ["PLR1702", "PLR0915", "PLR0914","PLR0912", "C901", "T201"]

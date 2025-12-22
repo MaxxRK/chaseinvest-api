@@ -141,10 +141,11 @@ def validate_order(order_type: str) -> str:
     """
     if order_type.lower() == "buy":
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-order-validations"
-    elif order_type.lower() in {"sell", "sell_all"}:
+    elif order_type.lower() in {"sell", "sell_all"}:  # noqa: RET505
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-order-validations"
     else:
-        raise ValueError("order_type must be either 'buy' or 'sell'")
+        error_msg = f"Invalid order_type '{order_type}'. Must be either 'buy' or 'sell'."
+        raise ValueError(error_msg)
 
 
 def order_analytics() -> str:
@@ -199,4 +200,3 @@ def get_headers() -> dict[str, str]:
         "origin": "https://secure.chase.com",
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
     }
-

@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import json
-from curl_cffi import requests, Cookies
+from curl_cffi import requests
 from .session import ChaseSession
 from .urls import account_holdings, holdings_json, order_page
 
