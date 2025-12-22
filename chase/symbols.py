@@ -91,8 +91,6 @@ class SymbolQuote:
         except Exception as e:
             print(f"Quote error: {e}")
 
-        print(response.json())
-
         self.ask_price = float(quote_data["askPriceAmount"])
         self.ask_exchange_code = quote_data["askExchangeCode"]
         self.ask_quantity = int(quote_data["askQuantity"])

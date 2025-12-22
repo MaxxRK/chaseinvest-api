@@ -176,9 +176,13 @@ class ChaseSession:
             if not username_box or not password_box:
                 raise Exception("Could not find username or password fields.")
 
+            # Scroll to help defeat bot detection?
+            await self.page.scroll_down(secrets.SystemRandom().uniform(0, 40), secrets.SystemRandom().uniform(900, 1500))
             for letter in r"" + username:
                 await username_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
+            # Scroll to help defeat bot detection?
+            await self.page.scroll_up(secrets.SystemRandom().uniform(0, 40), secrets.SystemRandom().uniform(900, 1500))
             for letter in self.password:
                 await password_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))

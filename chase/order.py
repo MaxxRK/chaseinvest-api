@@ -1,12 +1,13 @@
 import asyncio
 import json
+from logging import log
 
 from curl_cffi import requests
 from enum import StrEnum
 from zendriver.core.keys import SpecialKeys
 
 from .session import ChaseSession
-from .urls import order_info, order_page, execute_order, validate_order
+from .urls import order_info, order_page, execute_order, validate_order, order_status
 
 
 class PriceType(StrEnum):
@@ -122,9 +123,7 @@ class Order:
 
         order_messages = {
             "ORDER INVALID": "",
-            "WARNING": "",
-            "ORDER PREVIEW": "",
-            "AFTER HOURS WARNING": "",
+            "EXCHANGE ID": "",
             "ORDER CONFIRMATION": "",
         }
 
@@ -132,28 +131,30 @@ class Order:
         # Thanks @OSSY!
         cookies = await self.session.browser.cookies.get_all()
         cookies_dict = {c.name: c.value for c in cookies}
-       
+
         order_payload = {
            "accountIdentifier": int(account_id),
-            #"marketPriceAmount": current_price, do i need this for market?
+            #do i need this for market?
+            "marketPriceAmount": limit_price,
             "orderQuantity": quantity,
             "accountTypeCode": "CASH",
             "timeInForceCode": "DAY",
             "securitySymbolCode": symbol,
             "tradeChannelName": "DESKTOP",
             "dollarBasedTradingEligibleIndicator": False,
-            "orderTypeCode": price_type 
+            "orderTypeCode": price_type,
         }
-        
+
         url_validate = validate_order(order_type=order_type)
         url_execute = execute_order(order_type=order_type)
+
         if order_type == "BUY":
             order_payload["tradeActionName"] = "BUY"
         elif order_type =="SELL":
             order_payload["tradeActionName"] = "SELL"
         elif order_type == "SELL_ALL":
             order_payload["tradeActionName"] = "SELL_ALL"
-            
+
         if price_type == "LIMIT":
             order_payload["limitPriceAmount"] = limit_price
         elif price_type == "MARKET":
@@ -164,16 +165,15 @@ class Order:
                 return order_messages
         elif price_type == "MARKET ON CLOSE":
             pass
-        elif price_type in {"STOP", "STOP_LIMIT"}:
-            if duration not in {"DAY", "GOOD_TILL_CANCELLED"}:
-                order_messages["ORDER INVALID"] = (
-                    "Stop orders must be DAY or GOOD TILL CANCELLED."
-                )
-                return order_messages
+        elif price_type in {"STOP", "STOP_LIMIT"} and duration not in {"DAY", "GOOD_TILL_CANCELLED"}:
+            order_messages["ORDER INVALID"] = (
+                "Stop orders must be DAY or GOOD TILL CANCELLED."
+            )
+            return order_messages
 
-        if price_type in ["LIMIT", "STOP_LIMIT"]:
+        if price_type in {"LIMIT", "STOP_LIMIT"}:
             order_payload["limitPriceAmount"] = limit_price
-        if price_type in ["STOP", "STOP_LIMIT"]:
+        if price_type in {"STOP", "STOP_LIMIT"}:
             order_payload["stopPriceAmount"] = stop_price
 
         if duration == "DAY":
@@ -187,90 +187,47 @@ class Order:
         elif duration == "IMMEDIATE_OR_CANCEL":
             order_payload["timeInForceCode"] = "IMMEDIATE_OR_CANCEL"
 
-
         try:
-            warning = await self.session.page.find(
-                "#entry-trade-wrapper > div > div:nth-child(1) > div > div",
-                timeout=5,
-            )
-            warning_text = await warning.text
-            order_messages["ORDER INVALID"] = warning_text
-            return order_messages
-        except Exception:
-            order_messages["ORDER INVALID"] = "No invalid order message found."
+            # STEP 1: VALIDATION
+            resp_val = requests.post(url_validate, headers=self.session.headers, cookies=cookies_dict, json=order_payload, impersonate="chrome")
 
-        try:
-            warning = await self.session.page.find(
-                "#equityOverlayContent > div > div", timeout=5
-            )
-            warning_handle = await self.session.page.find("#previewSoftWarning > ul", timeout=2)
-            if warning_handle is not None:
-                warning_text = await warning_handle.text
-                order_messages["WARNING"] = warning_text
-                if self.accept_warning:
-                    try:
-                        accept_btn = await warning.find(".button--primary", timeout=5)
-                        await accept_btn.click()
-                    except Exception:
-                        raise Exception(
-                            "No accept button found. Could not dismiss prompt."
-                        )
-                else:
-                    return order_messages
-            else:
-                order_messages["WARNING"] = "No warning page found."
-        except Exception:
-            order_messages["WARNING"] = "No warning page found."
+            if resp_val.status_code != 200:
+                order_messages["ORDER INVALID"] = f"Validation Failed ({resp_val.status_code}): {resp_val.text}"
+                return False
 
-        try:
-            order_preview = await self.session.page.find(".trade-wrapper", timeout=5)
-            order_preview_text = await order_preview.text
-            order_messages["ORDER PREVIEW"] = order_preview_text
-            if not dry_run:
-                try:
-                    submit_btn = await self.session.page.find("#submitOrder", timeout=10)
-                    await submit_btn.click()
-                except Exception:
-                    raise Exception("No place order button found cannot continue.")
-            else:
+            val_data = resp_val.json()
+
+            error_msgs = val_data.get("tradeErrorMessages", [])
+            order_messages["ORDER INVALID"] = error_msgs
+
+            if order_messages["ORDER INVALID"]:
                 return order_messages
-        except Exception:
-            order_messages["ORDER PREVIEW"] = "No order preview page found."
+
+            exchange_id = val_data.get("financialInformationExchangeSystemOrderIdentifier")
+
+            if not exchange_id:
+                order_messages["EXCHANGE ID"] = f"Validation passed but no Exchange ID returned: {val_data}"
+                return order_messages
+        except Exception as e:
+            order_messages["ORDER INVALID"] = f"Validation Exception: {e}"
 
         try:
-            warning = await self.session.page.find(
-                "#afterHoursModal > div.markets-message > div", timeout=5
-            )
-            warning_text = await warning.text
-            order_messages["AFTER HOURS WARNING"] = warning_text
-            if after_hours:
-                try:
-                    confirm_btn = await self.session.page.find("#confirmAfterHoursOrder", timeout=2)
-                    await confirm_btn.click()
-                except Exception:
-                    raise Exception("No yes button found. Could not dismiss prompt.")
-            else:
-                return order_messages
-        except Exception:
-            order_messages["AFTER HOURS WARNING"] = "No after hours warning page found."
+            # STEP 2: EXECUTION
+            payload_execute = order_payload.copy()
+            payload_execute["financialInformationExchangeSystemOrderIdentifier"] = exchange_id
 
-        try:
-            order_outside_handle = await self.session.page.find(
-                "#equityConfirmation > div", timeout=5
-            )
-            order_handle = await self.session.page.find(".alert__title-text", timeout=2)
-            if order_handle is None:
-                order_messages["ORDER CONFIRMATION"] = "Alert Text not found."
+            resp_exec = requests.post(url_execute, headers=self.session.headers, cookies=cookies_dict, json=payload_execute, impersonate="chrome")
+
+            if resp_exec.status_code != 200:
+                order_messages["ORDER INVALID"] = f"Execution Failed ({resp_exec.status_code}): {resp_exec.text}"
                 return order_messages
-            order_confirmation = await order_handle.text
-            order_confirmation = order_confirmation.replace("\n", " ")
-            order_messages["ORDER CONFIRMATION"] = order_confirmation
-            return order_messages
-        except Exception:
-            order_messages["ORDER CONFIRMATION"] = (
-                "No order confirmation page found. Order Failed."
-            )
-            return order_messages
+
+            exec_data = resp_exec.json()
+            #order_id = exec_data.get("orderIdentifier")
+            order_messages["ORDER CONFIRMATION"] = exec_data
+        except Exception as e:
+            order_messages["ORDER INVALID"] = f"Execution Exception: {e}"
+        return order_messages
 
     def get_order_statuses(self, account_id: str) -> str:
         """Retrieve the statuses of all recent orders placed.
