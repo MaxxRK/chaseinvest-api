@@ -1,5 +1,9 @@
 """Stores all the urls for the chase website used in this api."""
 
+# API Endpoints
+# API_ACCOUNT_LIST = "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list" # noqa: ERA001
+# API_POSITIONS = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v2/positions"  # noqa: ERA001
+
 
 def login_page() -> str:
     """Return the Chase login page URL.
@@ -49,8 +53,6 @@ def account_info() -> str:
 
     """
     return "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list"
-    # The old URL is below, it seems to be deprecated now.
-    # https://secure09ea.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list,
 
 
 def account_holdings(account_id: str) -> str:
@@ -101,6 +103,7 @@ def quote_url() -> str:
     """
     return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes"
 
+
 def execute_order(order_type: str) -> str:
     """Return the URL for the order execution endpoint.
 
@@ -110,13 +113,18 @@ def execute_order(order_type: str) -> str:
     Returns:
         str: The URL to execute the specified type of order.
 
+    Raises:
+        ValueError: If order_type is not "buy" or "sell".
+
     """
     if order_type.lower() == "buy":
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-orders"
-    elif order_type.lower() == "sell":
+    elif order_type.lower() == "sell":  # noqa: RET505
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-orders"
     else:
-        raise ValueError("order_type must be either 'buy' or 'sell'")
+        error_msg = f"Invalid order_type '{order_type}'. Must be either 'buy' or 'sell'."
+        raise ValueError(error_msg)
+
 
 def validate_order(order_type: str) -> str:
     """Return the URL for the order validation endpoint.
@@ -126,6 +134,9 @@ def validate_order(order_type: str) -> str:
 
     Returns:
         str: The URL to validate the specified type of order.
+
+    Raises:
+        ValueError: If order_type is not "buy" or "sell".
 
     """
     if order_type.lower() == "buy":
@@ -180,22 +191,12 @@ def get_headers() -> dict[str, str]:
 
     """
     return {
-        'accept': 'application/json, text/plain, */*',
-        'content-type': 'application/json',
-        'referer': 'https://secure.chase.com/web/auth/dashboard',
-        'x-jpmc-csrf-token': 'NONE',
-        'x-jpmc-channel': 'id=C30',
-        'origin': 'https://secure.chase.com',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36'
+        "accept": "application/json, text/plain, */*",
+        "content-type": "application/json",
+        "referer": "https://secure.chase.com/web/auth/dashboard",
+        "x-jpmc-csrf-token": "NONE",
+        "x-jpmc-channel": "id=C30",
+        "origin": "https://secure.chase.com",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
     }
 
-# API Endpoints
-API_ACCOUNT_LIST = "https://secure.chase.com/svc/rl/accounts/secure/v1/dashboard/module/list"
-API_POSITIONS = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-investment-positions/v2/positions"
-
-# Trading Endpoints
-API_QUOTE = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/inquiry-maintenance/digital-equity-quote/v1/quotes"
-API_VALIDATE_BUY = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-order-validations"
-API_EXECUTE_BUY = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/buy-orders"
-API_VALIDATE_SELL = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-order-validations"
-API_EXECUTE_SELL = "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-orders"

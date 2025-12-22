@@ -5,7 +5,7 @@ from enum import StrEnum
 from curl_cffi import requests
 
 from .session import ChaseSession
-from .urls import order_info, order_page, execute_order, validate_order, order_status
+from .urls import order_info, order_page, execute_order, validate_order, order_status, get_headers
 
 
 class PriceType(StrEnum):
@@ -141,6 +141,7 @@ class Order:
 
         # Implement API calls instead of browser interactions where possible.
         # Thanks @OSSY!
+        headers = get_headers()
         cookies = await self.session.browser.cookies.get_all()
         cookies_dict = {c.name: c.value for c in cookies}
 
@@ -150,7 +151,7 @@ class Order:
             "marketPriceAmount": limit_price,
             "orderQuantity": quantity,
             "accountTypeCode": "CASH",
-            "timeInForceCode": "DAY",
+            "timeInForceCode": duration,
             "securitySymbolCode": symbol,
             "tradeChannelName": "DESKTOP",
             "dollarBasedTradingEligibleIndicator": False,
@@ -162,7 +163,7 @@ class Order:
 
         if order_type == "BUY":
             order_payload["tradeActionName"] = "BUY"
-        elif order_type =="SELL":
+        elif order_type == "SELL":
             order_payload["tradeActionName"] = "SELL"
         elif order_type == "SELL_ALL":
             order_payload["tradeActionName"] = "SELL_ALL"
@@ -201,7 +202,8 @@ class Order:
 
         try:
             # STEP 1: VALIDATION
-            resp_val = requests.post(url_validate, headers=self.session.headers, cookies=cookies_dict, json=order_payload, impersonate="chrome")
+
+            resp_val = requests.post(url_validate, headers=headers, cookies=cookies_dict, json=order_payload, impersonate="chrome")
 
             if resp_val.status_code != 200:
                 order_messages["ORDER INVALID"] = f"Validation Failed ({resp_val.status_code}): {resp_val.text}"
@@ -230,7 +232,7 @@ class Order:
             payload_execute = order_payload.copy()
             payload_execute["financialInformationExchangeSystemOrderIdentifier"] = exchange_id
 
-            resp_exec = requests.post(url_execute, headers=self.session.headers, cookies=cookies_dict, json=payload_execute, impersonate="chrome")
+            resp_exec = requests.post(url_execute, headers=headers, cookies=cookies_dict, json=payload_execute, impersonate="chrome")
 
             if resp_exec.status_code != 200:
                 order_messages["ORDER INVALID"] = f"Execution Failed ({resp_exec.status_code}): {resp_exec.text}"
