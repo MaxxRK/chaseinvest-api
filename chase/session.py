@@ -116,9 +116,8 @@ class ChaseSession:
             if "This event loop is already running" in str(e):
                 # We're in an async context, schedule the task
                 return asyncio.create_task(self._close_browser_async())
-            else:
-                # Some other RuntimeError, re-raise it
-                raise
+            # Some other RuntimeError, re-raise it
+            raise
 
     async def _close_browser_async(self) -> None:
         """Async implementation of close browser."""
@@ -303,7 +302,7 @@ class ChaseSession:
             bool: True if login is successful, False otherwise.
 
         Raises:
-            Exception: If an unexpected error occurs during the login process.
+            TimeoutError: If landing page is not reached within 60 seconds.
 
         """
         try:
@@ -349,7 +348,8 @@ class ChaseSession:
                 if landing_page() in self.page.url:
                     return True
 
-            raise Exception("Failed to login to Chase")
+            error_msg = "Failed to login to Chase. Landing page not reached after 60 seconds."
+            raise TimeoutError(error_msg)
 
         except Exception as e:
             await self.close_browser()

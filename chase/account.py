@@ -2,7 +2,6 @@ import asyncio
 import json
 import traceback
 
-from zendriver import cdp
 from .session import ChaseSession
 from .urls import account_info
 

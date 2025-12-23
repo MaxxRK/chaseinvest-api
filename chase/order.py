@@ -5,7 +5,7 @@ from enum import StrEnum
 from curl_cffi import requests
 
 from .session import ChaseSession
-from .urls import order_info, order_page, execute_order, validate_order, order_status, get_headers
+from .urls import execute_order, get_headers, order_info, order_page, order_status, validate_order
 
 
 class PriceType(StrEnum):
@@ -147,7 +147,7 @@ class Order:
 
         order_payload = {
            "accountIdentifier": int(account_id),
-            #do i need this for market?
+            # do i need this for market?
             "marketPriceAmount": limit_price,
             "orderQuantity": quantity,
             "accountTypeCode": "CASH",
@@ -239,7 +239,7 @@ class Order:
             elif resp_exec.status_code == 200:
                 order_messages["ORDER VALIDATION"] = val_data
             exec_data = resp_exec.json()
-            #order_id = exec_data.get("orderIdentifier")
+            # order_id = exec_data.get("orderIdentifier")
             order_messages["ORDER CONFIRMATION"] = exec_data
         except Exception as e:
             order_messages["ORDER INVALID"] = f"Execution Exception: {e}"
@@ -283,8 +283,7 @@ class Order:
 
                 # Get response body directly
                 body_str, _ = await response_info.response_body
-                body = json.loads(body_str)
-            return body
+            return json.loads(body_str)
         except Exception as e:
             print(f"Error getting order statuses: {e}")
             return None

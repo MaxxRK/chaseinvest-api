@@ -1,11 +1,11 @@
 import asyncio
 import datetime
 import json
-from curl_cffi import requests
-from .session import ChaseSession
-from .urls import account_holdings, holdings_json, order_page
 
-from .urls import quote_url,get_headers
+from curl_cffi import requests
+
+from .session import ChaseSession
+from .urls import account_holdings, get_headers, holdings_json, order_page, quote_url
 
 
 class SymbolQuote:
