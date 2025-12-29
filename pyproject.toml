@@ -26,9 +26,8 @@ dependencies = [
     "curl-cffi",
 ]
 
-[tool.setuptools.packages.find]
-include = ["chase*"]
-exclude = ["styles*"]
+[tool.setuptools]
+packages = ["chase"]
 
 [tool.ruff]
 target-version = "py312"
