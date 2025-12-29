@@ -86,7 +86,9 @@ class SymbolQuote:
         url = f"{quote_url()}?security-symbol-code={self.symbol}&security-validate-indicator=true&dollar-based-trading-include-indicator=true"
 
         try:
-            response = requests.get(url, headers=headers, cookies=cookies_dict, impersonate="chrome")
+            response = requests.get(
+                url, headers=headers, cookies=cookies_dict, impersonate="chrome"
+            )
             quote_data = response.json()
         except Exception as e:
             print(f"Quote error: {e}")
@@ -103,7 +105,8 @@ class SymbolQuote:
         self.last_trade_exchange_code = quote_data["lastTradeExchangeCode"]
         self.change_percent = float(quote_data["changePercent"])
         self.as_of_timestamp = datetime.datetime.strptime(
-            quote_data["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ",
+            quote_data["asOfTimestamp"],
+            "%Y-%m-%dT%H:%M:%S.%fZ",
         ).replace(tzinfo=self.local_tz)
         self.security_description_text = quote_data["securityDescriptionText"]
         self.security_symbol_code = quote_data["securitySymbolCode"]
@@ -191,7 +194,8 @@ class SymbolHoldings:
 
             self.raw_json = body
             self.as_of_time = datetime.datetime.strptime(
-                self.raw_json["asOfTimestamp"], "%Y-%m-%dT%H:%M:%S.%fZ",
+                self.raw_json["asOfTimestamp"],
+                "%Y-%m-%dT%H:%M:%S.%fZ",
             ).replace(tzinfo=self.local_tz)
             self.asset_allocation_tool_eligible_indicator = bool(
                 self.raw_json["assetAllocationToolEligibleIndicator"],

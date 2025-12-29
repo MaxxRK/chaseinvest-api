@@ -103,7 +103,10 @@ class AllAccount:
                 data = json.loads(body_str)
 
                 for info in data.get("cache", []):
-                    if info.get("url") == "/svc/rr/accounts/secure/overview/investment/v1/list":
+                    if (
+                        info.get("url")
+                        == "/svc/rr/accounts/secure/overview/investment/v1/list"
+                    ):
                         invest_json = info["response"]["investmentAccountOverviews"][0]
                         self.total_value = invest_json["totalValue"]
                         self.total_value_change = invest_json["totalValueChange"]
@@ -172,7 +175,11 @@ class AccountDetails:
         This method iterates over all accounts in the all_account_info attribute and sets the attributes of the AccountDetails object to the details of the account with the matching account ID.
 
         """
-        info = self.all_account_info if type(self.all_account_info) is list else self.all_account_info["investmentAccountDetails"]
+        info = (
+            self.all_account_info
+            if type(self.all_account_info) is list
+            else self.all_account_info["investmentAccountDetails"]
+        )
         for item in info:
             if item.get("accountId") is None:
                 item = item[0]

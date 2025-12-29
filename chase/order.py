@@ -5,7 +5,14 @@ from enum import StrEnum
 from curl_cffi import requests
 
 from .session import ChaseSession
-from .urls import execute_order, get_headers, order_info, order_page, order_status, validate_order
+from .urls import (
+    execute_order,
+    get_headers,
+    order_info,
+    order_page,
+    order_status,
+    validate_order,
+)
 
 
 class PriceType(StrEnum):
@@ -48,7 +55,9 @@ class Order:
     Also contains a method to place an order.
     """
 
-    def __init__(self, session: ChaseSession, accept_warning: bool = True) -> None:  # noqa: FBT001
+    def __init__(
+        self, session: ChaseSession, accept_warning: bool = True
+    ) -> None:  # noqa: FBT001
         """Initialize an Order instance.
 
         Args:
@@ -122,7 +131,7 @@ class Order:
         limit_price: float = 0.00,
         stop_price: float = 0.00,
         after_hours: bool = True,  # noqa: FBT001, FBT002
-        dry_run: bool = True, # noqa: FBT001, FBT002
+        dry_run: bool = True,  # noqa: FBT001, FBT002
     ) -> dict:
         """Async implementation of place_order.
 
@@ -146,7 +155,7 @@ class Order:
         cookies_dict = {c.name: c.value for c in cookies}
 
         order_payload = {
-           "accountIdentifier": int(account_id),
+            "accountIdentifier": int(account_id),
             # do i need this for market?
             "marketPriceAmount": limit_price,
             "orderQuantity": quantity,
@@ -178,7 +187,10 @@ class Order:
                 return order_messages
         elif price_type == "MARKET ON CLOSE":
             pass
-        elif price_type in {"STOP", "STOP_LIMIT"} and duration not in {"DAY", "GOOD_TILL_CANCELLED"}:
+        elif price_type in {"STOP", "STOP_LIMIT"} and duration not in {
+            "DAY",
+            "GOOD_TILL_CANCELLED",
+        }:
             order_messages["ORDER INVALID"] = (
                 "Stop orders must be DAY or GOOD TILL CANCELLED."
             )
@@ -203,10 +215,18 @@ class Order:
         try:
             # STEP 1: VALIDATION
 
-            resp_val = requests.post(url_validate, headers=headers, cookies=cookies_dict, json=order_payload, impersonate="chrome")
+            resp_val = requests.post(
+                url_validate,
+                headers=headers,
+                cookies=cookies_dict,
+                json=order_payload,
+                impersonate="chrome",
+            )
 
             if resp_val.status_code != 200:
-                order_messages["ORDER INVALID"] = f"Validation Failed ({resp_val.status_code}): {resp_val.text}"
+                order_messages["ORDER INVALID"] = (
+                    f"Validation Failed ({resp_val.status_code}): {resp_val.text}"
+                )
 
             val_data = resp_val.json()
 
@@ -217,7 +237,9 @@ class Order:
             if order_messages["ORDER INVALID"]:
                 return order_messages
 
-            exchange_id = val_data.get("financialInformationExchangeSystemOrderIdentifier")
+            exchange_id = val_data.get(
+                "financialInformationExchangeSystemOrderIdentifier"
+            )
 
             if dry_run:
                 order_messages["ORDER VALIDATION"] = val_data
@@ -230,12 +252,22 @@ class Order:
         try:
             # STEP 2: EXECUTION
             payload_execute = order_payload.copy()
-            payload_execute["financialInformationExchangeSystemOrderIdentifier"] = exchange_id
+            payload_execute["financialInformationExchangeSystemOrderIdentifier"] = (
+                exchange_id
+            )
 
-            resp_exec = requests.post(url_execute, headers=headers, cookies=cookies_dict, json=payload_execute, impersonate="chrome")
+            resp_exec = requests.post(
+                url_execute,
+                headers=headers,
+                cookies=cookies_dict,
+                json=payload_execute,
+                impersonate="chrome",
+            )
 
             if resp_exec.status_code != 200:
-                order_messages["ORDER INVALID"] = f"Execution Failed ({resp_exec.status_code}): {resp_exec.text}"
+                order_messages["ORDER INVALID"] = (
+                    f"Execution Failed ({resp_exec.status_code}): {resp_exec.text}"
+                )
             elif resp_exec.status_code == 200:
                 order_messages["ORDER VALIDATION"] = val_data
             exec_data = resp_exec.json()

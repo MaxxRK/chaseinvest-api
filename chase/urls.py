@@ -91,7 +91,9 @@ def order_page() -> str:
         str: The URL for the order page.
 
     """
-    return "https://secure.chase.com/web/auth/dashboard#/dashboard/oi-trade/equity/entry"
+    return (
+        "https://secure.chase.com/web/auth/dashboard#/dashboard/oi-trade/equity/entry"
+    )
 
 
 def quote_url() -> str:
@@ -122,7 +124,9 @@ def execute_order(order_type: str) -> str:
     elif order_type.lower() == "sell":  # noqa: RET505
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-orders"
     else:
-        error_msg = f"Invalid order_type '{order_type}'. Must be either 'buy' or 'sell'."
+        error_msg = (
+            f"Invalid order_type '{order_type}'. Must be either 'buy' or 'sell'."
+        )
         raise ValueError(error_msg)
 
 
@@ -144,7 +148,9 @@ def validate_order(order_type: str) -> str:
     elif order_type.lower() in {"sell", "sell_all"}:  # noqa: RET505
         return "https://secure.chase.com/svc/wr/dwm/secure/gateway/investments/servicing/investor-servicing/digital-equity-trades/v1/sell-order-validations"
     else:
-        error_msg = f"Invalid order_type '{order_type}'. Must be either 'buy' or 'sell'."
+        error_msg = (
+            f"Invalid order_type '{order_type}'. Must be either 'buy' or 'sell'."
+        )
         raise ValueError(error_msg)
 
 

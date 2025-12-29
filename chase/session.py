@@ -33,7 +33,15 @@ class ChaseSession:
 
     """
 
-    def __init__(self, *, docker: bool = False, headless: bool = True, title: str | None = None, profile_path: str = ".", debug: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        docker: bool = False,
+        headless: bool = True,
+        title: str | None = None,
+        profile_path: str = ".",
+        debug: bool = False,
+    ) -> None:
         """Initialize a new instance of the ChaseSession class.
 
         Args:
@@ -69,33 +77,47 @@ class ChaseSession:
         browser_args = []
 
         if self.docker:
-            browser_args.extend(["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--window-size=1920,1080"])
+            browser_args.extend(
+                [
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--window-size=1920,1080",
+                ]
+            )
         elif self.headless:
-            browser_args.extend(["--headless=new", "--window-size=1920,1080",
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-            "--disable-site-isolation-trials",
-            "--disable-features=IsolateOrigins,site-per-process",
-            "--disable-session-crashed-bubble",
-            "--disable-infobars",
-            "--disable-features=TranslateUI,VizDisplayCompositor",
-            "--no-first-run",
-            "--disable-default-apps",
-            "--disable-extensions",
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--window-size=1920,1080"])
+            browser_args.extend(
+                [
+                    "--headless=new",
+                    "--window-size=1920,1080",
+                    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+                    "--disable-site-isolation-trials",
+                    "--disable-features=IsolateOrigins,site-per-process",
+                    "--disable-session-crashed-bubble",
+                    "--disable-infobars",
+                    "--disable-features=TranslateUI,VizDisplayCompositor",
+                    "--no-first-run",
+                    "--disable-default-apps",
+                    "--disable-extensions",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--window-size=1920,1080",
+                ]
+            )
         else:
-            browser_args.extend([
-                "--start-maximized",
-                "--disable-session-crashed-bubble",
-                "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
-                "--disable-infobars",
-                "--disable-features=TranslateUI,VizDisplayCompositor",
-                "--no-first-run",
-                "--disable-default-apps",
-                "--disable-extensions",
-            ])
+            browser_args.extend(
+                [
+                    "--start-maximized",
+                    "--disable-session-crashed-bubble",
+                    "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+                    "--disable-infobars",
+                    "--disable-features=TranslateUI,VizDisplayCompositor",
+                    "--no-first-run",
+                    "--disable-default-apps",
+                    "--disable-extensions",
+                ]
+            )
         # zendriver has built-in stealth and anti-detection
         self.browser = await uc.start(
             browser_args=browser_args,
@@ -161,18 +183,26 @@ class ChaseSession:
             await self.page.sleep(2)
 
             username_box = await self.page.find("#userId-input-field-input", timeout=30)
-            password_box = await self.page.find("#password-input-field-input", timeout=30)
+            password_box = await self.page.find(
+                "#password-input-field-input", timeout=30
+            )
 
             if not username_box or not password_box:
                 raise Exception("Could not find username or password fields.")
 
             # Scroll to help defeat bot detection?
-            await self.page.scroll_down(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
+            await self.page.scroll_down(
+                int(secrets.SystemRandom().uniform(0, 40)),
+                int(secrets.SystemRandom().uniform(900, 1500)),
+            )
             for letter in r"" + username:
                 await username_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
             # Scroll to help defeat bot detection?
-            await self.page.scroll_up(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
+            await self.page.scroll_up(
+                int(secrets.SystemRandom().uniform(0, 40)),
+                int(secrets.SystemRandom().uniform(900, 1500)),
+            )
             for letter in self.password:
                 await password_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
@@ -190,12 +220,15 @@ class ChaseSession:
                 if options_list:
                     # Handle shadow DOM
                     shadow_elements = await self.page.select_all(
-                        "#optionsList *", timeout=5,
+                        "#optionsList *",
+                        timeout=5,
                     )
                     for element in shadow_elements:
                         attrs = element.attrs
                         text = attrs.get("label") if attrs else None
-                        if text and ("Get a text" in text or "push notification" in text):
+                        if text and (
+                            "Get a text" in text or "push notification" in text
+                        ):
                             # Use JavaScript to click instead of element.click()
                             await element.apply("el => el.click()")
                             break
@@ -218,24 +251,34 @@ class ChaseSession:
                         pass
                     try:
                         # Text message flow
-                        radio_group = await self.page.find("mds-radio-group", timeout=15)
+                        radio_group = await self.page.find(
+                            "mds-radio-group", timeout=15
+                        )
                         if radio_group:
                             attrs = radio_group.attrs
-                            radio_buttons_json = attrs.get("radio-buttons") if attrs else None
+                            radio_buttons_json = (
+                                attrs.get("radio-buttons") if attrs else None
+                            )
                             if radio_buttons_json:
                                 radio_buttons = json.loads(radio_buttons_json)
                                 # Find the index of the button matching last_four
                                 for index, button in enumerate(radio_buttons):
-                                    if f"xxx-xxx-{last_four}" in button.get("label", ""):
+                                    if f"xxx-xxx-{last_four}" in button.get(
+                                        "label", ""
+                                    ):
                                         # Set the selected-index attribute using JavaScript
-                                        await radio_group.apply(f"""
+                                        await radio_group.apply(
+                                            f"""
                                             el => {{
                                                 el.setAttribute('selected-index', '{index}');
                                                 el.dispatchEvent(new Event('change', {{ bubbles: true }}));
                                             }}
-                                        """)
+                                        """
+                                        )
                                         await self.page.sleep(0.5)
-                                        print(f"Selected radio button: {button['label']}")
+                                        print(
+                                            f"Selected radio button: {button['label']}"
+                                        )
                                         break
                             next_btn = await self.page.find("#next-content", timeout=5)
                             await next_btn.click()
@@ -248,16 +291,21 @@ class ChaseSession:
                 # New 2FA options not found, proceed to old 2FA flow
                 try:
                     dropdown = await self.page.find(
-                        "#header-simplerAuth-dropdownoptions-styledselect", timeout=5,
+                        "#header-simplerAuth-dropdownoptions-styledselect",
+                        timeout=5,
                     )
                     await dropdown.click()
-                    options = await self.page.query_selector_all('li[role="presentation"]')
+                    options = await self.page.query_selector_all(
+                        'li[role="presentation"]'
+                    )
                     for item in options:
                         text = await item.text
                         if str(last_four) in text:
                             await item.click()
                             break
-                    submit_btn = await self.page.find('button[type="submit"]', timeout=5)
+                    submit_btn = await self.page.find(
+                        'button[type="submit"]', timeout=5
+                    )
                     await submit_btn.click()
                     return True
                 except asyncio.TimeoutError:
@@ -266,10 +314,14 @@ class ChaseSession:
             # Check for opt-out page
             if opt_out_verification_page() in self.page.url:
                 # Trying to verify with xpath. This is untested in zendriver.
-                skip_btn = await self.page.find("//button[contains(., 'Skip this step next time')]", timeout=5)
+                skip_btn = await self.page.find(
+                    "//button[contains(., 'Skip this step next time')]", timeout=5
+                )
                 await skip_btn.click()
 
-                save_btn = await self.page.find("//button[contains(., 'Save and go to account')]", timeout=5)
+                save_btn = await self.page.find(
+                    "//button[contains(., 'Save and go to account')]", timeout=5
+                )
                 await save_btn.click()
 
             # Final check
@@ -320,9 +372,13 @@ class ChaseSession:
 
             try:
                 # This is an old 2fa login flow untested in zendriver and probably obsolete
-                otp_field = await self.page.find("#otpcode_input-input-field", timeout=15)
+                otp_field = await self.page.find(
+                    "#otpcode_input-input-field", timeout=15
+                )
                 await otp_field.send_keys(code)
-                pwd_field = await self.page.find("#password_input-input-field", timeout=5)
+                pwd_field = await self.page.find(
+                    "#password_input-input-field", timeout=5
+                )
                 await pwd_field.send_keys(self.password)
                 submit_btn = await self.page.find('button[type="submit"]', timeout=5)
                 await submit_btn.click()
@@ -334,10 +390,14 @@ class ChaseSession:
                 # Check for opt-out page
                 if opt_out_verification_page() in self.page.url:
                     # Trying to verify with xpath. This is untested in zendriver.
-                    skip_btn = await self.page.find("//button[contains(., 'Skip this step next time')]", timeout=5)
+                    skip_btn = await self.page.find(
+                        "//button[contains(., 'Skip this step next time')]", timeout=5
+                    )
                     await skip_btn.click()
 
-                    save_btn = await self.page.find("//button[contains(., 'Save and go to account')]", timeout=5)
+                    save_btn = await self.page.find(
+                        "//button[contains(., 'Save and go to account')]", timeout=5
+                    )
                     await save_btn.click()
             except TimeoutError:
                 pass
@@ -348,7 +408,9 @@ class ChaseSession:
                 if landing_page() in self.page.url:
                     return True
 
-            error_msg = "Failed to login to Chase. Landing page not reached after 60 seconds."
+            error_msg = (
+                "Failed to login to Chase. Landing page not reached after 60 seconds."
+            )
             raise TimeoutError(error_msg)
 
         except Exception as e:
