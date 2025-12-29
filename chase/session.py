@@ -171,11 +171,15 @@ class ChaseSession:
             for letter in r"" + username:
                 await username_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
+            # Random mouse click to help defeat bot detection?
+            await self.page.mouse_click(x=int(secrets.SystemRandom().uniform(0, 400)), y=int(secrets.SystemRandom().uniform(0, 400)), modifiers=0)
             # Scroll to help defeat bot detection?
             await self.page.scroll_up(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
             for letter in self.password:
                 await password_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
+            # Random mouse click to help defeat bot detection?
+            await self.page.mouse_click(x=int(secrets.SystemRandom().uniform(0, 400)), y=int(secrets.SystemRandom().uniform(0, 400)), modifiers=0)
             signin_button = await self.page.find("#signin-button", timeout=5)
             await signin_button.click()
             await self.page.sleep(3)
