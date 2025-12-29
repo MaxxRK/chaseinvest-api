@@ -109,7 +109,7 @@ class AllAccount:
                         self.total_value_change = invest_json["totalValueChange"]
                         return invest_json
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             print("Timed out waiting for network response.")
             return None
         except Exception as e:

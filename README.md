@@ -40,16 +40,18 @@ from chase import session
 from chase import symbols as sym
 
 # create Session Headless does not work at the moment it must be set to false.
-cs = session.ChaseSession(title="Title of your profile here", headless=False, profile_path='your/profile/path')
+cs = session.ChaseSession(
+    title="Title of your profile here", headless=False, profile_path="your/profile/path"
+)
 
 # Login to Chase.com
 login_one = cs.login("your_username", "your_password", "last_four_of_your_cell_phone")
 
 # Check if login succeeded without needing 2fa if not then prompt for 2fa code
-if login_one == False:
-    print('Login succeeded without needing 2fa...')
+if login_one is False:
+    print("Login succeeded without needing 2fa...")
 else:
-    code = input('Please input code that was sent to your phone: ')
+    code = input("Please input code that was sent to your phone: ")
     login_two = cs.login_two(code)
 
 # Make all account object
@@ -128,8 +130,7 @@ symbol_quote = sym.SymbolQuote(account_ids[0], cs, "INTC")
 print("====================================")
 print("SYMBOL QUOTE")
 print(
-    f"{symbol_quote.security_description} ask price {symbol_quote.ask_price}, @{symbol_quote.as_of_time} and the last trade was {symbol_quote.last_trade_price}."
-)
+    f"{symbol_quote.security_description_text} ask price {symbol_quote.ask_price}, @{symbol_quote.as_of_timestamp} and the last trade was {symbol_quote.last_trade_price_amount}.")
 print("====================================")
 
 # Place dry run order for INTC
