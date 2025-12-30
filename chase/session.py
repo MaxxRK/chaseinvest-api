@@ -58,7 +58,7 @@ class ChaseSession:
 
     async def get_browser(self) -> None:
         """Initialize a browser instance using zendriver."""
-        profile = await anyio.Path(self.profile_path).resolve() / "ZenChase"
+        profile = await anyio.Path(self.profile_path).resolve() / self.title if self.title else await anyio.Path(self.profile_path).resolve() / "ZenChase"
 
         # keep self.profile_path as a string for backward compatibility with other code
         self.profile_path = str(profile)

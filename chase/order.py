@@ -210,7 +210,6 @@ class Order:
 
             val_data = resp_val.json()
 
-            print(val_data)
             error_msgs = val_data.get("tradeErrorMessages", [])
             order_messages["ORDER INVALID"] = error_msgs
 
