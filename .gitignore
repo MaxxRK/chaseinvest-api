@@ -3,6 +3,7 @@ ZenChase/
 Profile/
 requests/
 Zen*/
+zen*/
 *.txt
 *.json
 *.py

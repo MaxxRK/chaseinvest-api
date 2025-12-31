@@ -158,7 +158,9 @@ class ChaseSession:
         try:
             self.password = r"" + password
             await self.page.get(login_page())
-            await self.page.sleep(2)
+            await self.page.wait_for_ready_state("complete")
+            await self.page.wait()
+            await self.page.sleep(4)
 
             username_box = await self.page.find("#userId-input-field-input", timeout=30)
             password_box = await self.page.find("#password-input-field-input", timeout=30)
@@ -166,23 +168,19 @@ class ChaseSession:
             if not username_box or not password_box:
                 raise Exception("Could not find username or password fields.")
 
-            # Scroll to help defeat bot detection?
-            await self.page.scroll_down(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
             for letter in r"" + username:
                 await username_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
-            # Random mouse click to help defeat bot detection?
-            await self.page.mouse_click(x=int(secrets.SystemRandom().uniform(0, 400)), y=int(secrets.SystemRandom().uniform(0, 400)), modifiers=0)
-            # Scroll to help defeat bot detection?
-            await self.page.scroll_up(int(secrets.SystemRandom().uniform(0, 40)), int(secrets.SystemRandom().uniform(900, 1500)))
+
             for letter in self.password:
                 await password_box.send_keys(letter)
                 await self.page.sleep(secrets.SystemRandom().uniform(0.05, 0.50))
-            # Random mouse click to help defeat bot detection?
-            await self.page.mouse_click(x=int(secrets.SystemRandom().uniform(0, 400)), y=int(secrets.SystemRandom().uniform(0, 400)), modifiers=0)
+
             signin_button = await self.page.find("#signin-button", timeout=5)
-            await signin_button.click()
-            await self.page.sleep(3)
+            await signin_button.mouse_click()
+            await self.page.wait_for_ready_state("complete")
+            await self.page.wait()
+            await self.page.sleep(4)
 
             # Check if we are on the landing page (successful login without 2FA)
             if landing_page() in self.page.url:  # type: operator
