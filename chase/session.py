@@ -222,7 +222,7 @@ class ChaseSession:
                         pass
                     try:
                         # Text message flow
-                        radio_group = await self.page.find("mds-radio-group", timeout=15)
+                        radio_group = await self.page.find("mds-radio-group", timeout=10)
                         if radio_group:
                             attrs = radio_group.attrs
                             radio_buttons_json = attrs.get("radio-buttons") if attrs else None
@@ -241,11 +241,23 @@ class ChaseSession:
                                         await self.page.sleep(0.5)
                                         print(f"Selected radio button: {button['label']}")
                                         break
-                            next_btn = await self.page.find("#next-content", timeout=5)
-                            await next_btn.click()
-                            return True  # 2FA code will be needed
                     except TimeoutError:
-                        # Timed out waiting for text message option moving on to old 2fa flow.
+                        # Timed out waiting for text message radio buttons trying single option.
+                        pass
+
+                    try:
+                        single_option = await self.page.find("#sms-select-text", timeout=10)
+                        if single_option:
+                            await single_option.click()
+                    except TimeoutError:
+                        # Timeout waiting for single option  moving on to old 2fa flow.
+                        pass
+
+                    try:
+                        next_btn = await self.page.find("#next-content", timeout=5)
+                        await next_btn.click()
+                        return True  # 2FA code will be needed
+                    except TimeoutError:
                         pass
 
             except TimeoutError:
@@ -264,7 +276,7 @@ class ChaseSession:
                     submit_btn = await self.page.find('button[type="submit"]', timeout=5)
                     await submit_btn.click()
                     return True
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     pass
 
             # Check for opt-out page

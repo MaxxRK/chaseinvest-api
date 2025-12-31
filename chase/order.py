@@ -122,7 +122,7 @@ class Order:
         limit_price: float = 0.00,
         stop_price: float = 0.00,
         after_hours: bool = True,  # noqa: FBT001, FBT002
-        dry_run: bool = True, # noqa: FBT001, FBT002
+        dry_run: bool = True,  # noqa: FBT001, FBT002
     ) -> dict:
         """Async implementation of place_order.
 
