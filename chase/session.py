@@ -186,6 +186,9 @@ class ChaseSession:
             if landing_page() in self.page.url:  # type: operator
                 return False  # No 2FA needed
 
+            # Switch to know if 2FA option is found
+            option_found = False
+            await self.page.wait_for_ready_state("complete")
             # Check for 2FA options
             try:
                 options_list = await self.page.find("#optionsList", timeout=15)
@@ -197,85 +200,76 @@ class ChaseSession:
                     for element in shadow_elements:
                         attrs = element.attrs
                         text = attrs.get("label") if attrs else None
-                        if text and ("Get a text" in text or "push notification" in text):
+                        print(f"2FA option found: {text}")
+                        if text and "Get a text" in text and last_four:
                             # Use JavaScript to click instead of element.click()
                             await element.apply("el => el.click()")
                             break
-                    await self.page.sleep(1)
-
-                    # Check for push notification
-                    try:
-                        approve_text = await self.page.find("text=approve", timeout=2)
-                        if approve_text:
-                            print(
-                                "Chase is asking for 2FA from the phone app. You have 120 seconds to approve it.",
-                            )
-                            # Wait for redirect to landing page
-                            for _ in range(120):
-                                await self.page.sleep(1)
-                                if landing_page() in self.page.url:
-                                    return False
-                    except TimeoutError:
-                        # Timed out waiting for push notification moving on to text message flow
-                        pass
-                    try:
-                        # Text message flow
-                        radio_group = await self.page.find("mds-radio-group", timeout=10)
-                        if radio_group:
-                            attrs = radio_group.attrs
-                            radio_buttons_json = attrs.get("radio-buttons") if attrs else None
-                            if radio_buttons_json:
-                                radio_buttons = json.loads(radio_buttons_json)
-                                # Find the index of the button matching last_four
-                                for index, button in enumerate(radio_buttons):
-                                    if f"xxx-xxx-{last_four}" in button.get("label", ""):
-                                        # Set the selected-index attribute using JavaScript
-                                        await radio_group.apply(f"""
-                                            el => {{
-                                                el.setAttribute('selected-index', '{index}');
-                                                el.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                                            }}
-                                        """)
-                                        await self.page.sleep(0.5)
-                                        print(f"Selected radio button: {button['label']}")
-                                        break
-                    except TimeoutError:
-                        # Timed out waiting for text message radio buttons trying single option.
-                        pass
-
-                    try:
-                        single_option = await self.page.find("#sms-select-text", timeout=10)
-                        if single_option:
-                            await single_option.click()
-                    except TimeoutError:
-                        # Timeout waiting for single option  moving on to old 2fa flow.
-                        pass
-
-                    try:
-                        next_btn = await self.page.find("#next-content", timeout=5)
-                        await next_btn.click()
-                        return True  # 2FA code will be needed
-                    except TimeoutError:
-                        pass
-
-            except TimeoutError:
-                # New 2FA options not found, proceed to old 2FA flow
-                try:
-                    dropdown = await self.page.find(
-                        "#header-simplerAuth-dropdownoptions-styledselect", timeout=5,
-                    )
-                    await dropdown.click()
-                    options = await self.page.query_selector_all('li[role="presentation"]')
-                    for item in options:
-                        text = await item.text
-                        if str(last_four) in text:
-                            await item.click()
+                        if text and "mobile app" in text:
+                            # Use JavaScript to click instead of element.click()
+                            await element.apply("el => el.click()")
+                            option_found = True
                             break
-                    submit_btn = await self.page.find('button[type="submit"]', timeout=5)
-                    await submit_btn.click()
-                    return True
-                except TimeoutError:
-                    pass
+                    await self.page.sleep(1)
+            except TimeoutError:
+                pass
+
+            try:
+                # Text message flow
+                if not option_found:
+                    await self.page.wait_for_ready_state("complete")
+                radio_group = await self.page.find("mds-radio-group", timeout=2)
+                if radio_group:
+                    attrs = radio_group.attrs
+                    radio_buttons_json = attrs.get("radio-buttons") if attrs else None
+                    if radio_buttons_json:
+                        radio_buttons = json.loads(radio_buttons_json)
+                        # Find the index of the button matching last_four
+                        for index, button in enumerate(radio_buttons):
+                            if f"xxx-xxx-{last_four}" in button.get("label", ""):
+                                # Set the selected-index attribute using JavaScript
+                                await radio_group.apply(f"""
+                                    el => {{
+                                        el.setAttribute('selected-index', '{index}');
+                                        el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                                    }}
+                                """)
+                                await self.page.sleep(0.5)
+                                print(f"Selected radio button: {button['label']}")
+                                option_found = True
+                                break
+            except TimeoutError:
+                # Timed out waiting for text message radio buttons trying single option.
+                pass
+
+            try:
+                # Single phone # option flow
+                if not option_found:
+                    single_option = await self.page.find("#sms-select-text", timeout=2)
+                    if single_option:
+                        await single_option.mouse_click()
+                        option_found = True
+            except TimeoutError:
+                # Timeout waiting for single option  moving on to old 2fa flow.
+                pass
+
+            try:
+                # Push notification flow
+                if not option_found:
+                    push_option = await self.page.find("li[aria-label*='Confirm using our mobile app']", timeout=2)
+                    if push_option:
+                        await push_option.mouse_click()
+                        option_found = True
+            except TimeoutError:
+                # Timed out waiting for push option moving on.
+                pass
+
+            await self.page.wait_for_ready_state("complete")
+            # Remove old 2fa flow as it seems completely deprecated now. Use option found switch to determine if next button is needed.
+            if option_found:
+                next_btn = await self.page.find("#next-content", timeout=5)
+                await next_btn.mouse_click()
+                return True  # 2FA code will be needed
 
             # Check for opt-out page
             if opt_out_verification_page() in self.page.url:
@@ -293,7 +287,7 @@ class ChaseSession:
             raise Exception("Login failed due to an unknown page state.")
 
         except Exception as e:
-            await self.close_browser()
+            self.close_browser()
             traceback.print_exc()
             raise Exception(f"Error in first step of login into Chase: {e}")
 
