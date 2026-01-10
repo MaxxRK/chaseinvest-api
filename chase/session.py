@@ -360,7 +360,7 @@ class ChaseSession:
             raise TimeoutError(error_msg)
 
         except Exception as e:
-            await self.close_browser()
+            self.close_browser()
             traceback.print_exc()
             print(f"Error logging into Chase: {e}")
             return False
