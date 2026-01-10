@@ -327,17 +327,6 @@ class ChaseSession:
                 pass
 
             try:
-                # This is an old 2fa login flow untested in zendriver and probably obsolete
-                otp_field = await self.page.find("#otpcode_input-input-field", timeout=15)
-                await otp_field.send_keys(code)
-                pwd_field = await self.page.find("#password_input-input-field", timeout=5)
-                await pwd_field.send_keys(self.password)
-                submit_btn = await self.page.find('button[type="submit"]', timeout=5)
-                await submit_btn.click()
-            except TimeoutError:
-                pass
-
-            try:
                 await self.page.sleep(2)
                 # Check for opt-out page
                 if opt_out_verification_page() in self.page.url:
